@@ -6,6 +6,7 @@
     <meta name="author" content="Tech254 Sizer">
     <title>Tech254 Passport Photo Sizer Tool</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
     <style>
         :root {
             --primary-color: #3498db;
@@ -13,6 +14,7 @@
             --danger-color: #e74c3c;
             --purple-color: #9b59b6;
             --orange-color: #f39c12;
+            --dark-color: #2c3e50;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -90,6 +92,9 @@
         .png-btn {
             background-color: var(--primary-color);
         }
+        .docx-btn {
+            background-color: var(--dark-color);
+        }
         .print-btn {
             background-color: var(--purple-color);
         }
@@ -118,27 +123,40 @@
             overflow: hidden;
             page-break-after: always;
         }
-        .photo-row {
-            display: flex;
-            justify-content: center;
-            padding: 15mm 0 0 0;
-            width: 100%;
-            flex-wrap: nowrap;
-        }
-        .photo-cell {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            box-sizing: border-box;
-            overflow: hidden;
+        .photo-container {
             position: relative;
-            margin: 0 2mm;
+            width: 100%;
+            height: 100%;
         }
-        .photo-cell img {
-            width: 35mm;
-            height: 45mm;
-            object-fit: cover;
+        .draggable-photo {
+            position: absolute;
+            cursor: move;
+            user-select: none;
             box-sizing: border-box;
+        }
+        .draggable-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-controls {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            display: flex;
+            gap: 5px;
+        }
+        .photo-control-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
         }
         @media print {
             body * {
@@ -158,6 +176,9 @@
                 padding: 0;
             }
             .no-print {
+                display: none;
+            }
+            .photo-controls {
                 display: none;
             }
         }
@@ -212,6 +233,18 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+        .layout-options {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .layout-btn {
+            background-color: #95a5a6;
+        }
+        .layout-btn.active {
+            background-color: var(--secondary-color);
+        }
     </style>
 </head>
 <body>
@@ -237,6 +270,11 @@
                 <div class="control-group">
                     <label for="bgColor">Background:</label>
                     <input type="color" id="bgColor" value="#ffffff">
+                </div>
+                
+                <div class="control-group">
+                    <label for="copiesCount">Copies:</label>
+                    <input type="number" id="copiesCount" value="4" min="1" max="20">
                 </div>
                 
                 <button id="resizeBtn">Resize Photo</button>
@@ -288,10 +326,17 @@
         </div>
         
         <div class="preview-section">
-            <h2>2. A4 Print Preview (4 copies in a row)</h2>
+            <h2>2. A4 Print Preview (<span id="copiesCountDisplay">4</span> copies)</h2>
+            
+            <div class="layout-options no-print">
+                <button id="autoLayoutBtn" class="layout-btn active">Auto Layout</button>
+                <button id="manualLayoutBtn" class="layout-btn">Manual Layout</button>
+                <button id="gridLayoutBtn" class="layout-btn">Grid Layout</button>
+            </div>
+            
             <div class="a4-template" id="a4Template">
-                <div class="photo-row" id="photoRow">
-                    <!-- Photos will be inserted here in a single row -->
+                <div class="photo-container" id="photoContainer">
+                    <!-- Photos will be inserted here as draggable elements -->
                 </div>
             </div>
             
@@ -299,6 +344,7 @@
                 <button id="downloadPdfBtn" class="download-btn pdf-btn">Download PDF</button>
                 <button id="downloadPngBtn" class="download-btn png-btn">Download PNG</button>
                 <button id="downloadJpgBtn" class="download-btn">Download JPG</button>
+                <button id="downloadDocxBtn" class="download-btn docx-btn">Download DOCX</button>
                 <button id="printBtn" class="print-btn">Print</button>
             </div>
         </div>
@@ -316,6 +362,8 @@
             const photoWidthInput = document.getElementById('photoWidth');
             const photoHeightInput = document.getElementById('photoHeight');
             const bgColorInput = document.getElementById('bgColor');
+            const copiesCountInput = document.getElementById('copiesCount');
+            const copiesCountDisplay = document.getElementById('copiesCountDisplay');
             const resizeBtn = document.getElementById('resizeBtn');
             const removeBgBtn = document.getElementById('removeBgBtn');
             const removeBgText = document.getElementById('removeBgText');
@@ -323,12 +371,16 @@
             const resetBgBtn = document.getElementById('resetBgBtn');
             const undoBtn = document.getElementById('undoBtn');
             const redoBtn = document.getElementById('redoBtn');
-            const photoRow = document.getElementById('photoRow');
+            const photoContainer = document.getElementById('photoContainer');
             const downloadPdfBtn = document.getElementById('downloadPdfBtn');
             const downloadPngBtn = document.getElementById('downloadPngBtn');
             const downloadJpgBtn = document.getElementById('downloadJpgBtn');
+            const downloadDocxBtn = document.getElementById('downloadDocxBtn');
             const printBtn = document.getElementById('printBtn');
             const statusMessage = document.getElementById('statusMessage');
+            const autoLayoutBtn = document.getElementById('autoLayoutBtn');
+            const manualLayoutBtn = document.getElementById('manualLayoutBtn');
+            const gridLayoutBtn = document.getElementById('gridLayoutBtn');
             
             // Border controls
             const borderSizeInput = document.getElementById('borderSize');
@@ -343,30 +395,69 @@
             let currentBorderSize = 0.2;
             let currentBorderColor = '#cccccc';
             let currentBorderType = 'dashed';
+            let currentLayoutMode = 'auto'; // 'auto', 'manual', 'grid'
+            let draggablePhotos = [];
             
             // History stack for undo/redo
             let historyStack = [];
             let currentHistoryIndex = -1;
             const MAX_HISTORY = 20;
             
+            // Update copies count display
+            copiesCountInput.addEventListener('input', function() {
+                copiesCountDisplay.textContent = this.value;
+                if (resizedImageUrl) updateA4Template();
+            });
+            
             // Update border size display
             borderSizeInput.addEventListener('input', function() {
                 currentBorderSize = parseFloat(this.value);
                 borderSizeValue.textContent = currentBorderSize.toFixed(1) + 'mm';
-                if (resizedImageUrl) updateA4Template();
+                if (resizedImageUrl) updatePhotoBorders();
             });
             
             // Update border color
             borderColorInput.addEventListener('input', function() {
                 currentBorderColor = this.value;
-                if (resizedImageUrl) updateA4Template();
+                if (resizedImageUrl) updatePhotoBorders();
             });
             
             // Update border type
             borderTypeInput.addEventListener('change', function() {
                 currentBorderType = this.value;
-                if (resizedImageUrl) updateA4Template();
+                if (resizedImageUrl) updatePhotoBorders();
             });
+            
+            // Layout mode buttons
+            autoLayoutBtn.addEventListener('click', function() {
+                setLayoutMode('auto');
+            });
+            
+            manualLayoutBtn.addEventListener('click', function() {
+                setLayoutMode('manual');
+            });
+            
+            gridLayoutBtn.addEventListener('click', function() {
+                setLayoutMode('grid');
+            });
+            
+            function setLayoutMode(mode) {
+                currentLayoutMode = mode;
+                autoLayoutBtn.classList.remove('active');
+                manualLayoutBtn.classList.remove('active');
+                gridLayoutBtn.classList.remove('active');
+                
+                if (mode === 'auto') {
+                    autoLayoutBtn.classList.add('active');
+                    updateA4Template();
+                } else if (mode === 'manual') {
+                    manualLayoutBtn.classList.add('active');
+                    enableManualLayout();
+                } else if (mode === 'grid') {
+                    gridLayoutBtn.classList.add('active');
+                    updateGridLayout();
+                }
+            }
             
             // Handle photo upload
             photoUpload.addEventListener('change', function(e) {
@@ -617,44 +708,288 @@
                 showStatus('Photo resized successfully!', 'success');
             });
             
-            // Update the A4 template with 4 copies in a single row
+            // Update photo borders
+            function updatePhotoBorders() {
+                const photos = document.querySelectorAll('.draggable-photo');
+                photos.forEach(photo => {
+                    photo.style.border = `${currentBorderSize}mm ${currentBorderType} ${currentBorderColor}`;
+                });
+            }
+            
+            // Create a draggable photo element
+            function createDraggablePhoto(id, x, y, width, height) {
+                const photoDiv = document.createElement('div');
+                photoDiv.className = 'draggable-photo';
+                photoDiv.id = `photo-${id}`;
+                photoDiv.style.left = `${x}mm`;
+                photoDiv.style.top = `${y}mm`;
+                photoDiv.style.width = `${width}mm`;
+                photoDiv.style.height = `${height}mm`;
+                photoDiv.style.border = `${currentBorderSize}mm ${currentBorderType} ${currentBorderColor}`;
+                
+                const img = document.createElement('img');
+                img.src = resizedImageUrl;
+                img.alt = `Passport photo ${id}`;
+                photoDiv.appendChild(img);
+                
+                // Add controls
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'photo-controls';
+                
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'photo-control-btn';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.title = 'Delete';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    photoDiv.remove();
+                    draggablePhotos = draggablePhotos.filter(p => p.id !== id);
+                });
+                
+                const cloneBtn = document.createElement('div');
+                cloneBtn.className = 'photo-control-btn';
+                cloneBtn.innerHTML = '+';
+                cloneBtn.title = 'Duplicate';
+                cloneBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newId = draggablePhotos.length > 0 ? Math.max(...draggablePhotos.map(p => p.id)) + 1 : 1;
+                    createDraggablePhoto(newId, x + 5, y + 5, width, height);
+                    draggablePhotos.push({
+                        id: newId,
+                        x: x + 5,
+                        y: y + 5,
+                        width,
+                        height
+                    });
+                });
+                
+                controlsDiv.appendChild(deleteBtn);
+                controlsDiv.appendChild(cloneBtn);
+                photoDiv.appendChild(controlsDiv);
+                
+                // Make draggable
+                let isDragging = false;
+                let offsetX, offsetY;
+                
+                photoDiv.addEventListener('mousedown', (e) => {
+                    if (e.target === photoDiv || e.target === img) {
+                        isDragging = true;
+                        offsetX = e.clientX - photoDiv.getBoundingClientRect().left;
+                        offsetY = e.clientY - photoDiv.getBoundingClientRect().top;
+                        photoDiv.style.zIndex = '100';
+                        e.preventDefault();
+                    }
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    
+                    const containerRect = photoContainer.getBoundingClientRect();
+                    const containerLeft = containerRect.left;
+                    const containerTop = containerRect.top;
+                    
+                    // Calculate position in mm
+                    const newLeft = (e.clientX - containerLeft - offsetX) / (containerRect.width / 210);
+                    const newTop = (e.clientY - containerTop - offsetY) / (containerRect.height / 297);
+                    
+                    // Constrain to container
+                    const constrainedLeft = Math.max(0, Math.min(210 - width, newLeft));
+                    const constrainedTop = Math.max(0, Math.min(297 - height, newTop));
+                    
+                    photoDiv.style.left = `${constrainedLeft}mm`;
+                    photoDiv.style.top = `${constrainedTop}mm`;
+                    
+                    // Update position in draggablePhotos array
+                    const photoIndex = draggablePhotos.findIndex(p => p.id === id);
+                    if (photoIndex !== -1) {
+                        draggablePhotos[photoIndex].x = constrainedLeft;
+                        draggablePhotos[photoIndex].y = constrainedTop;
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    photoDiv.style.zIndex = '1';
+                });
+                
+                return photoDiv;
+            }
+            
+            // Enable manual layout mode
+            function enableManualLayout() {
+                photoContainer.innerHTML = '';
+                draggablePhotos = [];
+                
+                const copiesCount = parseInt(copiesCountInput.value);
+                const photoWidthMM = parseFloat(photoWidthInput.value);
+                const photoHeightMM = parseFloat(photoHeightInput.value);
+                
+                // Add one photo centered by default
+                const initialX = (210 - photoWidthMM) / 2;
+                const initialY = (297 - photoHeightMM) / 2;
+                
+                const photoDiv = createDraggablePhoto(1, initialX, initialY, photoWidthMM, photoHeightMM);
+                photoContainer.appendChild(photoDiv);
+                
+                draggablePhotos.push({
+                    id: 1,
+                    x: initialX,
+                    y: initialY,
+                    width: photoWidthMM,
+                    height: photoHeightMM
+                });
+            }
+            
+            // Update grid layout (starting from top)
+            function updateGridLayout() {
+                photoContainer.innerHTML = '';
+                draggablePhotos = [];
+                
+                const copiesCount = parseInt(copiesCountInput.value);
+                const photoWidthMM = parseFloat(photoWidthInput.value);
+                const photoHeightMM = parseFloat(photoHeightInput.value);
+                const spacingMM = 2;
+                
+                // Calculate how many photos fit horizontally
+                const photosPerRow = Math.floor(210 / (photoWidthMM + spacingMM));
+                
+                // Calculate margins to center the grid horizontally
+                const totalWidth = photosPerRow * photoWidthMM + (photosPerRow - 1) * spacingMM;
+                const leftMargin = (210 - totalWidth) / 2;
+                
+                // Fixed top margin (15mm from top)
+                const topMargin = 15;
+                const rowSpacing = 5;
+                
+                // Add photos in grid from top
+                let photoId = 1;
+                let currentTop = topMargin;
+                
+                while (photoId <= copiesCount) {
+                    for (let col = 0; col < photosPerRow; col++) {
+                        if (photoId > copiesCount) break;
+                        
+                        const x = leftMargin + col * (photoWidthMM + spacingMM);
+                        const y = currentTop;
+                        
+                        const photoDiv = createDraggablePhoto(photoId, x, y, photoWidthMM, photoHeightMM);
+                        photoContainer.appendChild(photoDiv);
+                        
+                        draggablePhotos.push({
+                            id: photoId,
+                            x,
+                            y,
+                            width: photoWidthMM,
+                            height: photoHeightMM
+                        });
+                        
+                        photoId++;
+                    }
+                    
+                    // Move to next row
+                    currentTop += photoHeightMM + rowSpacing;
+                    
+                    // Check if we have space for another row
+                    if (currentTop + photoHeightMM > 297) break;
+                }
+            }
+            
+            // Update the A4 template with optimized layout
             function updateA4Template() {
                 if (!resizedImageUrl) return;
                 
+                const copiesCount = parseInt(copiesCountInput.value);
+                copiesCountDisplay.textContent = copiesCount;
+                
                 // Clear previous photos
-                photoRow.innerHTML = '';
+                photoContainer.innerHTML = '';
+                draggablePhotos = [];
                 
-                // Calculate total width needed for 4 photos with spacing
+                if (currentLayoutMode === 'auto') {
+                    updateAutoLayout();
+                } else if (currentLayoutMode === 'manual') {
+                    enableManualLayout();
+                } else if (currentLayoutMode === 'grid') {
+                    updateGridLayout();
+                }
+            }
+            
+            // Update auto layout (optimized for paper usage)
+            function updateAutoLayout() {
+                const copiesCount = parseInt(copiesCountInput.value);
                 const photoWidthMM = parseFloat(photoWidthInput.value);
-                const spacingMM = 4;
-                const totalWidthMM = (photoWidthMM * 4) + (spacingMM * 3 * 2);
+                const photoHeightMM = parseFloat(photoHeightInput.value);
                 
-                // Calculate left margin to center the row
-                const a4WidthMM = 210;
-                const leftMarginMM = Math.max(0, (a4WidthMM - totalWidthMM) / 2);
+                // Calculate maximum number of photos that can fit in different orientations
+                const landscapeCount = calculateMaxPhotos(photoWidthMM, photoHeightMM);
+                const portraitCount = calculateMaxPhotos(photoHeightMM, photoWidthMM);
                 
-                // Add 4 copies of the resized photo in a row
-                for (let i = 0; i < 4; i++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'photo-cell';
-                    cell.style.width = photoWidthMM + 'mm';
-                    cell.style.height = photoHeightInput.value + 'mm';
-                    
-                    if (i === 0) {
-                        cell.style.marginLeft = leftMarginMM + 'mm';
+                // Use the orientation that fits more photos
+                if (landscapeCount >= portraitCount) {
+                    createAutoLayoutPhotos(photoWidthMM, photoHeightMM);
+                } else {
+                    createAutoLayoutPhotos(photoHeightMM, photoWidthMM, true);
+                }
+            }
+            
+            // Calculate maximum number of photos that can fit in given orientation
+            function calculateMaxPhotos(width, height) {
+                const a4Width = 210;
+                const a4Height = 297;
+                const spacing = 2;
+                
+                const horizontalFit = Math.floor(a4Width / (width + spacing));
+                const verticalFit = Math.floor(a4Height / (height + spacing));
+                
+                return horizontalFit * verticalFit;
+            }
+            
+            // Create photos in auto layout
+            function createAutoLayoutPhotos(width, height, rotated = false) {
+                const copiesCount = parseInt(copiesCountInput.value);
+                const a4Width = 210;
+                const a4Height = 297;
+                const spacing = 2;
+                
+                // Calculate how many photos fit horizontally and vertically
+                const horizontalFit = Math.floor(a4Width / (width + spacing));
+                const verticalFit = Math.floor(a4Height / (height + spacing));
+                const maxPerPage = horizontalFit * verticalFit;
+                
+                // Calculate margins to distribute space evenly
+                const totalHorizontalSpace = horizontalFit * width + (horizontalFit - 1) * spacing;
+                const leftMargin = (a4Width - totalHorizontalSpace) / 2;
+                
+                const totalVerticalSpace = verticalFit * height + (verticalFit - 1) * spacing;
+                const topMargin = (a4Height - totalVerticalSpace) / 2;
+                
+                // Add photos in grid
+                let photoId = 1;
+                for (let row = 0; row < verticalFit; row++) {
+                    for (let col = 0; col < horizontalFit; col++) {
+                        if (photoId > copiesCount) break;
+                        
+                        const x = leftMargin + col * (width + spacing);
+                        const y = topMargin + row * (height + spacing);
+                        
+                        const photoDiv = createDraggablePhoto(photoId, x, y, width, height);
+                        if (rotated) {
+                            photoDiv.style.transform = 'rotate(90deg)';
+                            photoDiv.style.transformOrigin = 'center';
+                        }
+                        photoContainer.appendChild(photoDiv);
+                        
+                        draggablePhotos.push({
+                            id: photoId,
+                            x,
+                            y,
+                            width,
+                            height,
+                            rotated
+                        });
+                        
+                        photoId++;
                     }
-                    
-                    const img = document.createElement('img');
-                    img.src = resizedImageUrl;
-                    img.alt = `Passport photo ${i+1}`;
-                    img.style.width = '100%';
-                    img.style.height = '100%';
-                    
-                    // Apply border styles
-                    img.style.border = `${currentBorderSize}mm ${currentBorderType} ${currentBorderColor}`;
-                    
-                    cell.appendChild(img);
-                    photoRow.appendChild(cell);
                 }
             }
             
@@ -677,46 +1012,118 @@
                     // Load the resized image
                     const img = new Image();
                     img.onload = function() {
-                        // Calculate dimensions
-                        const imgWidth = parseFloat(photoWidthInput.value) * pxPerMM;
-                        const imgHeight = parseFloat(photoHeightInput.value) * pxPerMM;
-                        const spacing = 4 * pxPerMM;
-                        
-                        // Calculate left margin to center the row
-                        const totalWidth = (imgWidth * 4) + (spacing * 3);
-                        const leftMargin = Math.max(0, (a4Canvas.width - totalWidth) / 2);
-                        const topMargin = 15 * pxPerMM;
-                        
-                        // Draw 4 copies in a row with spacing
-                        for (let i = 0; i < 4; i++) {
-                            const x = leftMargin + (i * (imgWidth + spacing));
+                        // Draw all photos from draggablePhotos array
+                        draggablePhotos.forEach(photo => {
+                            const x = photo.x * pxPerMM;
+                            const y = photo.y * pxPerMM;
+                            const width = photo.width * pxPerMM;
+                            const height = photo.height * pxPerMM;
                             
-                            // Draw the image
-                            a4Ctx.drawImage(img, x, topMargin, imgWidth, imgHeight);
-                            
-                            // Draw custom border
-                            a4Ctx.strokeStyle = currentBorderColor;
-                            a4Ctx.lineWidth = currentBorderSize * pxPerMM;
-                            
-                            // Set line dash pattern based on border type
-                            if (currentBorderType === 'dashed') {
-                                a4Ctx.setLineDash([6, 3]);
-                            } else if (currentBorderType === 'dotted') {
-                                a4Ctx.setLineDash([2, 2]);
+                            if (photo.rotated) {
+                                // Save the context
+                                a4Ctx.save();
+                                
+                                // Move to center of where we want to draw
+                                a4Ctx.translate(x + width/2, y + height/2);
+                                
+                                // Rotate
+                                a4Ctx.rotate(Math.PI/2);
+                                
+                                // Draw the image offset by half its width/height
+                                a4Ctx.drawImage(img, -height/2, -width/2, height, width);
+                                
+                                // Draw border
+                                a4Ctx.strokeStyle = currentBorderColor;
+                                a4Ctx.lineWidth = currentBorderSize * pxPerMM;
+                                
+                                // Set line dash pattern based on border type
+                                if (currentBorderType === 'dashed') {
+                                    a4Ctx.setLineDash([6, 3]);
+                                } else if (currentBorderType === 'dotted') {
+                                    a4Ctx.setLineDash([2, 2]);
+                                } else {
+                                    a4Ctx.setLineDash([]);
+                                }
+                                
+                                a4Ctx.strokeRect(-height/2, -width/2, height, width);
+                                a4Ctx.setLineDash([]); // Reset to solid line
+                                
+                                // Restore the context
+                                a4Ctx.restore();
                             } else {
-                                a4Ctx.setLineDash([]);
+                                // Draw the image
+                                a4Ctx.drawImage(img, x, y, width, height);
+                                
+                                // Draw border
+                                a4Ctx.strokeStyle = currentBorderColor;
+                                a4Ctx.lineWidth = currentBorderSize * pxPerMM;
+                                
+                                // Set line dash pattern based on border type
+                                if (currentBorderType === 'dashed') {
+                                    a4Ctx.setLineDash([6, 3]);
+                                } else if (currentBorderType === 'dotted') {
+                                    a4Ctx.setLineDash([2, 2]);
+                                } else {
+                                    a4Ctx.setLineDash([]);
+                                }
+                                
+                                a4Ctx.strokeRect(x, y, width, height);
+                                a4Ctx.setLineDash([]); // Reset to solid line
                             }
-                            
-                            a4Ctx.strokeRect(
-                                x, 
-                                topMargin, 
-                                imgWidth, 
-                                imgHeight
-                            );
-                            a4Ctx.setLineDash([]); // Reset to solid line
-                        }
+                        });
                         
                         resolve(a4Canvas);
+                    };
+                    img.src = resizedImageUrl;
+                });
+            }
+            
+            // Create DOCX document
+            async function createDocx() {
+                const { Document, Packer, Paragraph, ImageRun } = window.docx;
+                
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Create a temporary canvas to get the image data
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = img.width;
+                        tempCanvas.height = img.height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.drawImage(img, 0, 0);
+                        
+                        // Get image data URL
+                        const imageDataUrl = tempCanvas.toDataURL('image/jpeg', 0.9);
+                        
+                        // Create document
+                        const doc = new Document({
+                            sections: [{
+                                properties: {},
+                                children: [
+                                    new Paragraph({
+                                        children: draggablePhotos.map(photo => {
+                                            return new ImageRun({
+                                                data: imageDataUrl,
+                                                transformation: {
+                                                    width: photo.width * 360, // 360 = 1mm in Word's units
+                                                    height: photo.height * 360,
+                                                },
+                                                floating: {
+                                                    horizontalPosition: {
+                                                        offset: photo.x * 360,
+                                                    },
+                                                    verticalPosition: {
+                                                        offset: photo.y * 360,
+                                                    },
+                                                }
+                                            });
+                                        })
+                                    })
+                                ]
+                            }]
+                        });
+                        
+                        resolve(doc);
                     };
                     img.src = resizedImageUrl;
                 });
@@ -795,6 +1202,38 @@
                 }
             });
             
+            // Download as DOCX
+            downloadDocxBtn.addEventListener('click', async function() {
+                if (!resizedImageUrl) {
+                    showStatus('Please resize a photo first', 'error');
+                    return;
+                }
+                
+                try {
+                    const doc = await createDocx();
+                    
+                    // Generate DOCX file
+                    const packer = new Packer();
+                    const blob = await packer.toBlob(doc);
+                    
+                    // Download DOCX
+                    const link = document.createElement('a');
+                    link.download = 'passport-photos-tech254.docx';
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        URL.revokeObjectURL(link.href);
+                    }, 100);
+                    
+                    showStatus('DOCX downloaded successfully!', 'success');
+                } catch (error) {
+                    console.error('DOCX generation failed:', error);
+                    showStatus('Failed to generate DOCX', 'error');
+                }
+            });
+            
             // Print A4 template
             printBtn.addEventListener('click', function() {
                 if (!resizedImageUrl) {
@@ -803,6 +1242,9 @@
                 }
                 window.print();
             });
+            
+            // Initialize with auto layout
+            setLayoutMode('auto');
         });
     </script>
 </body>
