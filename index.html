@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Tech254 Sizer">
+    <title>Tech254 Passport Photo Sizer Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #27ae60;
+            --danger-color: #e74c3c;
+            --purple-color: #9b59b6;
+            --orange-color: #f39c12;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .brand {
+            text-align: center;
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .upload-section, .preview-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin: 15px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 15px;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .download-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .download-btn {
+            background-color: var(--secondary-color);
+            padding: 10px 20px;
+        }
+        .pdf-btn {
+            background-color: var(--danger-color);
+        }
+        .png-btn {
+            background-color: var(--primary-color);
+        }
+        .print-btn {
+            background-color: var(--purple-color);
+        }
+        .bg-remove-btn {
+            background-color: var(--orange-color);
+        }
+        .undo-btn {
+            background-color: #7f8c8d;
+        }
+        .redo-btn {
+            background-color: #95a5a6;
+        }
+        canvas {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .a4-template {
+            width: 210mm;
+            height: 297mm;
+            background-color: white;
+            margin: 0 auto;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+        }
+        .photo-row {
+            display: flex;
+            justify-content: center;
+            padding: 15mm 0 0 0;
+            width: 100%;
+            flex-wrap: nowrap;
+        }
+        .photo-cell {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            box-sizing: border-box;
+            overflow: hidden;
+            position: relative;
+            margin: 0 2mm;
+        }
+        .photo-cell img {
+            width: 35mm;
+            height: 45mm;
+            object-fit: cover;
+            box-sizing: border-box;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .a4-template, .a4-template * {
+                visibility: visible;
+            }
+            .a4-template {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 210mm;
+                height: 297mm;
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        .border-controls {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        input[type="range"] {
+            width: 100px;
+        }
+        .bg-removal-tool {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .bg-removal-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .history-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .status-message {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Passport Photo Sizer Tool</h1>
+    <div class="brand">by Tech254 Sizer</div>
+    
+    <div class="container">
+        <div class="upload-section">
+            <h2>1. Upload Your Photo</h2>
+            <input type="file" id="photoUpload" accept="image/*">
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label for="photoWidth">Width (mm):</label>
+                    <input type="number" id="photoWidth" value="35" min="10" max="100">
+                </div>
+                
+                <div class="control-group">
+                    <label for="photoHeight">Height (mm):</label>
+                    <input type="number" id="photoHeight" value="45" min="10" max="100">
+                </div>
+                
+                <div class="control-group">
+                    <label for="bgColor">Background:</label>
+                    <input type="color" id="bgColor" value="#ffffff">
+                </div>
+                
+                <button id="resizeBtn">Resize Photo</button>
+            </div>
+            
+            <div class="border-controls">
+                <h3>Border Settings:</h3>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="borderSize">Size (mm):</label>
+                        <input type="range" id="borderSize" min="0" max="2" step="0.1" value="0.2">
+                        <span id="borderSizeValue">0.2mm</span>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="borderColor">Color:</label>
+                        <input type="color" id="borderColor" value="#cccccc">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="borderType">Style:</label>
+                        <select id="borderType">
+                            <option value="solid">Solid</option>
+                            <option value="dashed" selected>Dashed</option>
+                            <option value="dotted">Dotted</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-removal-tool">
+                <h3>AI Background Removal</h3>
+                <p>Automatically remove background with AI technology</p>
+                <div class="bg-removal-controls">
+                    <button id="removeBgBtn" class="bg-remove-btn">
+                        <span id="removeBgText">Remove Background</span>
+                        <span id="removeBgSpinner" class="loading" style="display:none;"></span>
+                    </button>
+                    <button id="resetBgBtn">Reset Image</button>
+                </div>
+                <div class="history-controls">
+                    <button id="undoBtn" class="undo-btn" disabled>Undo</button>
+                    <button id="redoBtn" class="redo-btn" disabled>Redo</button>
+                </div>
+                <div id="statusMessage" class="status-message" style="display:none;"></div>
+            </div>
+            
+            <canvas id="photoCanvas"></canvas>
+        </div>
+        
+        <div class="preview-section">
+            <h2>2. A4 Print Preview (4 copies in a row)</h2>
+            <div class="a4-template" id="a4Template">
+                <div class="photo-row" id="photoRow">
+                    <!-- Photos will be inserted here in a single row -->
+                </div>
+            </div>
+            
+            <div class="download-options no-print">
+                <button id="downloadPdfBtn" class="download-btn pdf-btn">Download PDF</button>
+                <button id="downloadPngBtn" class="download-btn png-btn">Download PNG</button>
+                <button id="downloadJpgBtn" class="download-btn">Download JPG</button>
+                <button id="printBtn" class="print-btn">Print</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize jsPDF
+        const { jsPDF } = window.jspdf;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const photoUpload = document.getElementById('photoUpload');
+            const photoCanvas = document.getElementById('photoCanvas');
+            const ctx = photoCanvas.getContext('2d');
+            const photoWidthInput = document.getElementById('photoWidth');
+            const photoHeightInput = document.getElementById('photoHeight');
+            const bgColorInput = document.getElementById('bgColor');
+            const resizeBtn = document.getElementById('resizeBtn');
+            const removeBgBtn = document.getElementById('removeBgBtn');
+            const removeBgText = document.getElementById('removeBgText');
+            const removeBgSpinner = document.getElementById('removeBgSpinner');
+            const resetBgBtn = document.getElementById('resetBgBtn');
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            const photoRow = document.getElementById('photoRow');
+            const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+            const downloadPngBtn = document.getElementById('downloadPngBtn');
+            const downloadJpgBtn = document.getElementById('downloadJpgBtn');
+            const printBtn = document.getElementById('printBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            // Border controls
+            const borderSizeInput = document.getElementById('borderSize');
+            const borderColorInput = document.getElementById('borderColor');
+            const borderTypeInput = document.getElementById('borderType');
+            const borderSizeValue = document.getElementById('borderSizeValue');
+            
+            // State variables
+            let originalImage = null;
+            let currentImageData = null;
+            let resizedImageUrl = null;
+            let currentBorderSize = 0.2;
+            let currentBorderColor = '#cccccc';
+            let currentBorderType = 'dashed';
+            
+            // History stack for undo/redo
+            let historyStack = [];
+            let currentHistoryIndex = -1;
+            const MAX_HISTORY = 20;
+            
+            // Update border size display
+            borderSizeInput.addEventListener('input', function() {
+                currentBorderSize = parseFloat(this.value);
+                borderSizeValue.textContent = currentBorderSize.toFixed(1) + 'mm';
+                if (resizedImageUrl) updateA4Template();
+            });
+            
+            // Update border color
+            borderColorInput.addEventListener('input', function() {
+                currentBorderColor = this.value;
+                if (resizedImageUrl) updateA4Template();
+            });
+            
+            // Update border type
+            borderTypeInput.addEventListener('change', function() {
+                currentBorderType = this.value;
+                if (resizedImageUrl) updateA4Template();
+            });
+            
+            // Handle photo upload
+            photoUpload.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        originalImage = new Image();
+                        originalImage.onload = function() {
+                            photoCanvas.width = originalImage.width;
+                            photoCanvas.height = originalImage.height;
+                            ctx.drawImage(originalImage, 0, 0);
+                            // Save initial state to history
+                            saveState();
+                        };
+                        originalImage.src = event.target.result;
+                    };
+                    
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+            
+            // Save current canvas state to history
+            function saveState() {
+                // Clear redo stack when making new changes
+                historyStack = historyStack.slice(0, currentHistoryIndex + 1);
+                
+                // Limit history size
+                if (historyStack.length >= MAX_HISTORY) {
+                    historyStack.shift();
+                } else {
+                    currentHistoryIndex++;
+                }
+                
+                // Save current image data
+                historyStack.push({
+                    imageData: ctx.getImageData(0, 0, photoCanvas.width, photoCanvas.height),
+                    imageSrc: photoCanvas.toDataURL()
+                });
+                
+                // Update button states
+                updateUndoRedoButtons();
+            }
+            
+            // Update undo/redo button states
+            function updateUndoRedoButtons() {
+                undoBtn.disabled = currentHistoryIndex <= 0;
+                redoBtn.disabled = currentHistoryIndex >= historyStack.length - 1;
+            }
+            
+            // Undo last action
+            undoBtn.addEventListener('click', function() {
+                if (currentHistoryIndex > 0) {
+                    currentHistoryIndex--;
+                    restoreState();
+                }
+            });
+            
+            // Redo last undone action
+            redoBtn.addEventListener('click', function() {
+                if (currentHistoryIndex < historyStack.length - 1) {
+                    currentHistoryIndex++;
+                    restoreState();
+                }
+            });
+            
+            // Restore state from history
+            function restoreState() {
+                const state = historyStack[currentHistoryIndex];
+                ctx.putImageData(state.imageData, 0, 0);
+                currentImageData = state.imageData;
+                updateUndoRedoButtons();
+            }
+            
+            // Remove background using AI (simulated API call)
+            removeBgBtn.addEventListener('click', async function() {
+                if (!originalImage) {
+                    showStatus('Please upload a photo first', 'error');
+                    return;
+                }
+                
+                try {
+                    // Show loading state
+                    removeBgText.textContent = 'Processing...';
+                    removeBgSpinner.style.display = 'inline-block';
+                    removeBgBtn.disabled = true;
+                    statusMessage.style.display = 'none';
+                    
+                    // Save state before making changes
+                    saveState();
+                    
+                    // Simulate AI background removal (in a real app, you would call an API here)
+                    // For demonstration, we'll use a timeout to simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    // Create a temporary canvas for the "AI" processing
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = photoCanvas.width;
+                    tempCanvas.height = photoCanvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Draw the original image
+                    tempCtx.drawImage(photoCanvas, 0, 0);
+                    
+                    // Simulate AI processing by making a "best guess" at the background
+                    // In a real implementation, this would be replaced with actual API call to:
+                    // 1. Remove.bg API
+                    // 2. Cloudinary
+                    // 3. Or other AI background removal service
+                    
+                    // Get image data
+                    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                    const data = imageData.data;
+                    
+                    // Sample "AI" algorithm - this is just a simple simulation
+                    // Real implementation would use proper AI segmentation
+                    const centerX = Math.floor(tempCanvas.width / 2);
+                    const centerY = Math.floor(tempCanvas.height / 2);
+                    const edgeThreshold = 0.15; // 15% from edges is considered background
+                    
+                    for (let y = 0; y < tempCanvas.height; y++) {
+                        for (let x = 0; x < tempCanvas.width; x++) {
+                            const i = (y * tempCanvas.width + x) * 4;
+                            
+                            // Determine if pixel is likely background
+                            const isEdge = 
+                                x < tempCanvas.width * edgeThreshold ||
+                                x > tempCanvas.width * (1 - edgeThreshold) ||
+                                y < tempCanvas.height * edgeThreshold ||
+                                y > tempCanvas.height * (1 - edgeThreshold);
+                            
+                            // Calculate distance from center
+                            const distanceFromCenter = Math.sqrt(
+                                Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+                            );
+                            const maxDistance = Math.sqrt(
+                                Math.pow(centerX, 2) + Math.pow(centerY, 2)
+                            );
+                            const normalizedDistance = distanceFromCenter / maxDistance;
+                            
+                            // If pixel is at edges or very different from center, make transparent
+                            if (isEdge || normalizedDistance > 0.8) {
+                                data[i + 3] = 0; // Set alpha to 0 (transparent)
+                            }
+                        }
+                    }
+                    
+                    tempCtx.putImageData(imageData, 0, 0);
+                    
+                    // Draw the result back to main canvas
+                    ctx.drawImage(tempCanvas, 0, 0);
+                    currentImageData = ctx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
+                    
+                    showStatus('Background removed successfully!', 'success');
+                } catch (error) {
+                    console.error('Background removal failed:', error);
+                    showStatus('Background removal failed. Please try again.', 'error');
+                } finally {
+                    // Reset button state
+                    removeBgText.textContent = 'Remove Background';
+                    removeBgSpinner.style.display = 'none';
+                    removeBgBtn.disabled = false;
+                }
+            });
+            
+            // Show status message
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = `status-message ${type}`;
+                statusMessage.style.display = 'block';
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Reset image to original
+            resetBgBtn.addEventListener('click', function() {
+                if (historyStack.length > 0) {
+                    saveState(); // Save current state before resetting
+                    currentHistoryIndex = 0;
+                    restoreState();
+                    showStatus('Image reset to original', 'success');
+                }
+            });
+            
+            // Resize photo to passport size
+            resizeBtn.addEventListener('click', function() {
+                if (!originalImage) {
+                    showStatus('Please upload a photo first', 'error');
+                    return;
+                }
+                
+                const widthMM = parseFloat(photoWidthInput.value);
+                const heightMM = parseFloat(photoHeightInput.value);
+                const bgColor = bgColorInput.value;
+                
+                // Calculate pixel dimensions at 300 DPI
+                const pxPerMM = 300 / 25.4;
+                const widthPx = Math.round(widthMM * pxPerMM);
+                const heightPx = Math.round(heightMM * pxPerMM);
+                
+                // Create a temporary canvas for resizing
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = widthPx;
+                tempCanvas.height = heightPx;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Fill with background color
+                tempCtx.fillStyle = bgColor;
+                tempCtx.fillRect(0, 0, widthPx, heightPx);
+                
+                // Calculate aspect ratio and position to center the image
+                const originalAspect = originalImage.width / originalImage.height;
+                const newAspect = widthPx / heightPx;
+                
+                let drawWidth, drawHeight, offsetX, offsetY;
+                
+                if (originalAspect > newAspect) {
+                    // Original is wider than new aspect ratio
+                    drawHeight = heightPx;
+                    drawWidth = drawHeight * originalAspect;
+                    offsetX = (widthPx - drawWidth) / 2;
+                    offsetY = 0;
+                } else {
+                    // Original is taller than new aspect ratio
+                    drawWidth = widthPx;
+                    drawHeight = drawWidth / originalAspect;
+                    offsetX = 0;
+                    offsetY = (heightPx - drawHeight) / 2;
+                }
+                
+                // Draw the image centered
+                tempCtx.drawImage(photoCanvas, offsetX, offsetY, drawWidth, drawHeight);
+                
+                // Update the main canvas
+                photoCanvas.width = widthPx;
+                photoCanvas.height = heightPx;
+                ctx.drawImage(tempCanvas, 0, 0);
+                
+                // Save the resized image URL
+                resizedImageUrl = tempCanvas.toDataURL('image/jpeg', 0.9);
+                
+                // Update the A4 template
+                updateA4Template();
+                
+                showStatus('Photo resized successfully!', 'success');
+            });
+            
+            // Update the A4 template with 4 copies in a single row
+            function updateA4Template() {
+                if (!resizedImageUrl) return;
+                
+                // Clear previous photos
+                photoRow.innerHTML = '';
+                
+                // Calculate total width needed for 4 photos with spacing
+                const photoWidthMM = parseFloat(photoWidthInput.value);
+                const spacingMM = 4;
+                const totalWidthMM = (photoWidthMM * 4) + (spacingMM * 3 * 2);
+                
+                // Calculate left margin to center the row
+                const a4WidthMM = 210;
+                const leftMarginMM = Math.max(0, (a4WidthMM - totalWidthMM) / 2);
+                
+                // Add 4 copies of the resized photo in a row
+                for (let i = 0; i < 4; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'photo-cell';
+                    cell.style.width = photoWidthMM + 'mm';
+                    cell.style.height = photoHeightInput.value + 'mm';
+                    
+                    if (i === 0) {
+                        cell.style.marginLeft = leftMarginMM + 'mm';
+                    }
+                    
+                    const img = document.createElement('img');
+                    img.src = resizedImageUrl;
+                    img.alt = `Passport photo ${i+1}`;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    
+                    // Apply border styles
+                    img.style.border = `${currentBorderSize}mm ${currentBorderType} ${currentBorderColor}`;
+                    
+                    cell.appendChild(img);
+                    photoRow.appendChild(cell);
+                }
+            }
+            
+            // Create A4 template canvas
+            async function createA4Canvas() {
+                return new Promise((resolve) => {
+                    // Create a new canvas for the A4 template
+                    const a4Canvas = document.createElement('canvas');
+                    const a4Ctx = a4Canvas.getContext('2d');
+                    
+                    // Set A4 dimensions at 300 DPI
+                    const pxPerMM = 300 / 25.4;
+                    a4Canvas.width = 210 * pxPerMM;
+                    a4Canvas.height = 297 * pxPerMM;
+                    
+                    // Fill white background
+                    a4Ctx.fillStyle = '#ffffff';
+                    a4Ctx.fillRect(0, 0, a4Canvas.width, a4Canvas.height);
+                    
+                    // Load the resized image
+                    const img = new Image();
+                    img.onload = function() {
+                        // Calculate dimensions
+                        const imgWidth = parseFloat(photoWidthInput.value) * pxPerMM;
+                        const imgHeight = parseFloat(photoHeightInput.value) * pxPerMM;
+                        const spacing = 4 * pxPerMM;
+                        
+                        // Calculate left margin to center the row
+                        const totalWidth = (imgWidth * 4) + (spacing * 3);
+                        const leftMargin = Math.max(0, (a4Canvas.width - totalWidth) / 2);
+                        const topMargin = 15 * pxPerMM;
+                        
+                        // Draw 4 copies in a row with spacing
+                        for (let i = 0; i < 4; i++) {
+                            const x = leftMargin + (i * (imgWidth + spacing));
+                            
+                            // Draw the image
+                            a4Ctx.drawImage(img, x, topMargin, imgWidth, imgHeight);
+                            
+                            // Draw custom border
+                            a4Ctx.strokeStyle = currentBorderColor;
+                            a4Ctx.lineWidth = currentBorderSize * pxPerMM;
+                            
+                            // Set line dash pattern based on border type
+                            if (currentBorderType === 'dashed') {
+                                a4Ctx.setLineDash([6, 3]);
+                            } else if (currentBorderType === 'dotted') {
+                                a4Ctx.setLineDash([2, 2]);
+                            } else {
+                                a4Ctx.setLineDash([]);
+                            }
+                            
+                            a4Ctx.strokeRect(
+                                x, 
+                                topMargin, 
+                                imgWidth, 
+                                imgHeight
+                            );
+                            a4Ctx.setLineDash([]); // Reset to solid line
+                        }
+                        
+                        resolve(a4Canvas);
+                    };
+                    img.src = resizedImageUrl;
+                });
+            }
+            
+            // Download as PDF
+            downloadPdfBtn.addEventListener('click', async function() {
+                if (!resizedImageUrl) {
+                    showStatus('Please resize a photo first', 'error');
+                    return;
+                }
+                
+                try {
+                    const a4Canvas = await createA4Canvas();
+                    
+                    // Create PDF
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+                    
+                    // Add canvas image to PDF
+                    pdf.addImage(a4Canvas.toDataURL('image/jpeg'), 'JPEG', 0, 0, 210, 297);
+                    
+                    // Download PDF
+                    pdf.save('passport-photos-tech254.pdf');
+                    showStatus('PDF downloaded successfully!', 'success');
+                } catch (error) {
+                    console.error('PDF generation failed:', error);
+                    showStatus('Failed to generate PDF', 'error');
+                }
+            });
+            
+            // Download as PNG
+            downloadPngBtn.addEventListener('click', async function() {
+                if (!resizedImageUrl) {
+                    showStatus('Please resize a photo first', 'error');
+                    return;
+                }
+                
+                try {
+                    const a4Canvas = await createA4Canvas();
+                    
+                    // Download PNG
+                    const link = document.createElement('a');
+                    link.download = 'passport-photos-tech254.png';
+                    link.href = a4Canvas.toDataURL('image/png');
+                    link.click();
+                    showStatus('PNG downloaded successfully!', 'success');
+                } catch (error) {
+                    console.error('PNG generation failed:', error);
+                    showStatus('Failed to generate PNG', 'error');
+                }
+            });
+            
+            // Download as JPG
+            downloadJpgBtn.addEventListener('click', async function() {
+                if (!resizedImageUrl) {
+                    showStatus('Please resize a photo first', 'error');
+                    return;
+                }
+                
+                try {
+                    const a4Canvas = await createA4Canvas();
+                    
+                    // Download JPG
+                    const link = document.createElement('a');
+                    link.download = 'passport-photos-tech254.jpg';
+                    link.href = a4Canvas.toDataURL('image/jpeg', 0.9);
+                    link.click();
+                    showStatus('JPG downloaded successfully!', 'success');
+                } catch (error) {
+                    console.error('JPG generation failed:', error);
+                    showStatus('Failed to generate JPG', 'error');
+                }
+            });
+            
+            // Print A4 template
+            printBtn.addEventListener('click', function() {
+                if (!resizedImageUrl) {
+                    showStatus('Please resize a photo first', 'error');
+                    return;
+                }
+                window.print();
+            });
+        });
+    </script>
+</body>
+</html>
