@@ -7,6 +7,8 @@
     <title>Tech254 Passport Photo Sizer Tool</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.css">
     <style>
         :root {
             --primary-color: #3498db;
@@ -245,6 +247,88 @@
         .layout-btn.active {
             background-color: var(--secondary-color);
         }
+        /* Cropper styles */
+        .cropper-container {
+            max-width: 100%;
+            margin: 10px 0;
+        }
+        .cropper-modal {
+            background: transparent;
+        }
+        .cropper-view-box {
+            outline: 2px solid var(--primary-color);
+            outline-color: rgba(52, 152, 219, 0.75);
+        }
+        .cropper-dashed {
+            border-color: var(--primary-color);
+        }
+        .cropper-point {
+            background-color: var(--primary-color);
+        }
+        .cropper-line {
+            background-color: var(--primary-color);
+        }
+        /* Ruler styles */
+        .ruler {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.7);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .horizontal-ruler {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        .vertical-ruler {
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 100%;
+            border-right: 1px solid #ccc;
+        }
+        .ruler-marker {
+            position: absolute;
+            background-color: #ccc;
+        }
+        .horizontal-marker {
+            width: 1px;
+            height: 5px;
+        }
+        .vertical-marker {
+            width: 5px;
+            height: 1px;
+        }
+        .ruler-label {
+            position: absolute;
+            font-size: 10px;
+            color: #666;
+        }
+        /* Crop controls */
+        .crop-controls {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        /* Alignment guides */
+        .alignment-guide {
+            position: absolute;
+            background-color: rgba(52, 152, 219, 0.5);
+            z-index: 90;
+            pointer-events: none;
+            display: none;
+        }
+        .horizontal-guide {
+            width: 100%;
+            height: 1px;
+        }
+        .vertical-guide {
+            width: 1px;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -255,6 +339,17 @@
         <div class="upload-section">
             <h2>1. Upload Your Photo</h2>
             <input type="file" id="photoUpload" accept="image/*">
+            
+            <div class="crop-controls" style="display: none;">
+                <h3>Crop Image</h3>
+                <div id="cropper-container" style="max-width: 100%; height: 300px;">
+                    <img id="cropper-image" style="max-width: 100%;">
+                </div>
+                <div class="controls" style="margin-top: 10px;">
+                    <button id="crop-btn">Apply Crop</button>
+                    <button id="cancel-crop-btn">Cancel</button>
+                </div>
+            </div>
             
             <div class="controls">
                 <div class="control-group">
@@ -278,6 +373,7 @@
                 </div>
                 
                 <button id="resizeBtn">Resize Photo</button>
+                <button id="crop-tool-btn">Crop Tool</button>
             </div>
             
             <div class="border-controls">
@@ -332,10 +428,17 @@
                 <button id="autoLayoutBtn" class="layout-btn active">Auto Layout</button>
                 <button id="manualLayoutBtn" class="layout-btn">Manual Layout</button>
                 <button id="gridLayoutBtn" class="layout-btn">Grid Layout</button>
+                <button id="toggleRulerBtn" class="layout-btn">Toggle Ruler</button>
+                <button id="addGuideBtn" class="layout-btn">Add Guide</button>
             </div>
             
             <div class="a4-template" id="a4Template">
+                <div id="horizontalRuler" class="ruler horizontal-ruler" style="display: none;"></div>
+                <div id="verticalRuler" class="ruler vertical-ruler" style="display: none;"></div>
                 <div class="photo-container" id="photoContainer">
+                    <!-- Alignment guides -->
+                    <div id="horizontalGuide" class="alignment-guide horizontal-guide"></div>
+                    <div id="verticalGuide" class="alignment-guide vertical-guide"></div>
                     <!-- Photos will be inserted here as draggable elements -->
                 </div>
             </div>
@@ -381,6 +484,17 @@
             const autoLayoutBtn = document.getElementById('autoLayoutBtn');
             const manualLayoutBtn = document.getElementById('manualLayoutBtn');
             const gridLayoutBtn = document.getElementById('gridLayoutBtn');
+            const cropToolBtn = document.getElementById('crop-tool-btn');
+            const cropControls = document.querySelector('.crop-controls');
+            const cropperImage = document.getElementById('cropper-image');
+            const cropBtn = document.getElementById('crop-btn');
+            const cancelCropBtn = document.getElementById('cancel-crop-btn');
+            const toggleRulerBtn = document.getElementById('toggleRulerBtn');
+            const horizontalRuler = document.getElementById('horizontalRuler');
+            const verticalRuler = document.getElementById('verticalRuler');
+            const addGuideBtn = document.getElementById('addGuideBtn');
+            const horizontalGuide = document.getElementById('horizontalGuide');
+            const verticalGuide = document.getElementById('verticalGuide');
             
             // Border controls
             const borderSizeInput = document.getElementById('borderSize');
@@ -397,11 +511,312 @@
             let currentBorderType = 'dashed';
             let currentLayoutMode = 'auto'; // 'auto', 'manual', 'grid'
             let draggablePhotos = [];
+            let cropper = null;
+            let guides = [];
+            let isRulerVisible = false;
+            let snapThreshold = 5; // pixels threshold for snapping
+            let isSnapping = false;
             
-            // History stack for undo/redo
-            let historyStack = [];
-            let currentHistoryIndex = -1;
-            const MAX_HISTORY = 20;
+            // Initialize rulers
+            function initRulers() {
+                // Horizontal ruler
+                for (let i = 0; i <= 210; i += 10) {
+                    const marker = document.createElement('div');
+                    marker.className = 'ruler-marker horizontal-marker';
+                    marker.style.left = `${i}mm`;
+                    marker.style.bottom = '0';
+                    
+                    if (i % 50 === 0) {
+                        marker.style.height = '10px';
+                        const label = document.createElement('div');
+                        label.className = 'ruler-label';
+                        label.textContent = i;
+                        label.style.left = `${i-5}mm`;
+                        label.style.bottom = '-15px';
+                        horizontalRuler.appendChild(label);
+                    } else if (i % 10 === 0) {
+                        marker.style.height = '7px';
+                    }
+                    
+                    horizontalRuler.appendChild(marker);
+                }
+                
+                // Vertical ruler
+                for (let i = 0; i <= 297; i += 10) {
+                    const marker = document.createElement('div');
+                    marker.className = 'ruler-marker vertical-marker';
+                    marker.style.top = `${i}mm`;
+                    marker.style.right = '0';
+                    
+                    if (i % 50 === 0) {
+                        marker.style.width = '10px';
+                        const label = document.createElement('div');
+                        label.className = 'ruler-label';
+                        label.textContent = i;
+                        label.style.top = `${i-5}mm`;
+                        label.style.right = '-15px';
+                        verticalRuler.appendChild(label);
+                    } else if (i % 10 === 0) {
+                        marker.style.width = '7px';
+                    }
+                    
+                    verticalRuler.appendChild(marker);
+                }
+            }
+            
+            // Toggle ruler visibility
+            function toggleRulers() {
+                isRulerVisible = !isRulerVisible;
+                if (isRulerVisible) {
+                    horizontalRuler.style.display = 'block';
+                    verticalRuler.style.display = 'block';
+                    toggleRulerBtn.textContent = 'Hide Ruler';
+                } else {
+                    horizontalRuler.style.display = 'none';
+                    verticalRuler.style.display = 'none';
+                    toggleRulerBtn.textContent = 'Show Ruler';
+                }
+            }
+            
+            // Add alignment guide
+            function addGuide(isHorizontal = true) {
+                const guideId = Date.now();
+                const guide = document.createElement('div');
+                guide.className = `guide ${isHorizontal ? 'horizontal-guide' : 'vertical-guide'}`;
+                guide.id = `guide-${guideId}`;
+                
+                if (isHorizontal) {
+                    guide.style.top = '50%';
+                    guide.style.left = '0';
+                } else {
+                    guide.style.left = '50%';
+                    guide.style.top = '0';
+                }
+                
+                const handle = document.createElement('div');
+                handle.className = 'guide-handle';
+                handle.style.left = isHorizontal ? '50%' : '5px';
+                handle.style.top = isHorizontal ? '5px' : '50%';
+                
+                guide.appendChild(handle);
+                document.getElementById('a4Template').appendChild(guide);
+                
+                guides.push({
+                    id: guideId,
+                    element: guide,
+                    isHorizontal,
+                    position: isHorizontal ? 148.5 : 105 // Middle of A4
+                });
+                
+                // Make draggable
+                let isDragging = false;
+                let startPos;
+                
+                handle.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startPos = isHorizontal ? e.clientY : e.clientX;
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    
+                    const containerRect = document.getElementById('a4Template').getBoundingClientRect();
+                    const newPos = isHorizontal ? 
+                        (e.clientY - containerRect.top) / (containerRect.height / 297) :
+                        (e.clientX - containerRect.left) / (containerRect.width / 210);
+                    
+                    // Constrain to container
+                    const constrainedPos = Math.max(0, Math.min(isHorizontal ? 297 : 210, newPos));
+                    
+                    if (isHorizontal) {
+                        guide.style.top = `${constrainedPos}mm`;
+                        handle.style.top = '5px';
+                    } else {
+                        guide.style.left = `${constrainedPos}mm`;
+                        handle.style.left = '5px';
+                    }
+                    
+                    // Update position in guides array
+                    const guideIndex = guides.findIndex(g => g.id === guideId);
+                    if (guideIndex !== -1) {
+                        guides[guideIndex].position = constrainedPos;
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+            }
+            
+            // Check for alignment with other photos and show guides
+            function checkAlignment(x, y, width, height, currentId) {
+                // Hide guides initially
+                horizontalGuide.style.display = 'none';
+                verticalGuide.style.display = 'none';
+                isSnapping = false;
+                
+                // Check alignment with other photos
+                for (const photo of draggablePhotos) {
+                    if (photo.id === currentId) continue;
+                    
+                    // Convert positions to pixels for comparison
+                    const containerRect = photoContainer.getBoundingClientRect();
+                    const pxPerMMX = containerRect.width / 210;
+                    const pxPerMMY = containerRect.height / 297;
+                    
+                    const currentLeftPx = x * pxPerMMX;
+                    const currentTopPx = y * pxPerMMY;
+                    const currentRightPx = (x + width) * pxPerMMX;
+                    const currentBottomPx = (y + height) * pxPerMMY;
+                    
+                    const photoLeftPx = photo.x * pxPerMMX;
+                    const photoTopPx = photo.y * pxPerMMY;
+                    const photoRightPx = (photo.x + photo.width) * pxPerMMX;
+                    const photoBottomPx = (photo.y + photo.height) * pxPerMMY;
+                    
+                    // Check horizontal alignment (top, center, bottom)
+                    if (Math.abs(currentTopPx - photoTopPx) < snapThreshold) {
+                        // Snap to top
+                        y = photo.y;
+                        horizontalGuide.style.top = `${photo.y}mm`;
+                        horizontalGuide.style.display = 'block';
+                        isSnapping = true;
+                    } else if (Math.abs(currentBottomPx - photoBottomPx) < snapThreshold) {
+                        // Snap to bottom
+                        y = photo.y + photo.height - height;
+                        horizontalGuide.style.top = `${photo.y + photo.height}mm`;
+                        horizontalGuide.style.display = 'block';
+                        isSnapping = true;
+                    } else if (Math.abs((currentTopPx + currentBottomPx)/2 - (photoTopPx + photoBottomPx)/2) < snapThreshold) {
+                        // Snap to vertical center
+                        y = photo.y + (photo.height - height)/2;
+                        horizontalGuide.style.top = `${photo.y + photo.height/2}mm`;
+                        horizontalGuide.style.display = 'block';
+                        isSnapping = true;
+                    }
+                    
+                    // Check vertical alignment (left, center, right)
+                    if (Math.abs(currentLeftPx - photoLeftPx) < snapThreshold) {
+                        // Snap to left
+                        x = photo.x;
+                        verticalGuide.style.left = `${photo.x}mm`;
+                        verticalGuide.style.display = 'block';
+                        isSnapping = true;
+                    } else if (Math.abs(currentRightPx - photoRightPx) < snapThreshold) {
+                        // Snap to right
+                        x = photo.x + photo.width - width;
+                        verticalGuide.style.left = `${photo.x + photo.width}mm`;
+                        verticalGuide.style.display = 'block';
+                        isSnapping = true;
+                    } else if (Math.abs((currentLeftPx + currentRightPx)/2 - (photoLeftPx + photoRightPx)/2) < snapThreshold) {
+                        // Snap to horizontal center
+                        x = photo.x + (photo.width - width)/2;
+                        verticalGuide.style.left = `${photo.x + photo.width/2}mm`;
+                        verticalGuide.style.display = 'block';
+                        isSnapping = true;
+                    }
+                }
+                
+                // Check alignment with page center
+                const containerRect = photoContainer.getBoundingClientRect();
+                const pxPerMMX = containerRect.width / 210;
+                const pxPerMMY = containerRect.height / 297;
+                
+                const currentCenterXPx = (x + width/2) * pxPerMMX;
+                const currentCenterYPx = (y + height/2) * pxPerMMY;
+                const pageCenterXPx = 105 * pxPerMMX;
+                const pageCenterYPx = 148.5 * pxPerMMY;
+                
+                if (Math.abs(currentCenterXPx - pageCenterXPx) < snapThreshold) {
+                    // Snap to horizontal center of page
+                    x = 105 - width/2;
+                    verticalGuide.style.left = '105mm';
+                    verticalGuide.style.display = 'block';
+                    isSnapping = true;
+                }
+                
+                if (Math.abs(currentCenterYPx - pageCenterYPx) < snapThreshold) {
+                    // Snap to vertical center of page
+                    y = 148.5 - height/2;
+                    horizontalGuide.style.top = '148.5mm';
+                    horizontalGuide.style.display = 'block';
+                    isSnapping = true;
+                }
+                
+                return { x, y };
+            }
+            
+            // Initialize rulers
+            initRulers();
+            
+            // Toggle ruler button
+            toggleRulerBtn.addEventListener('click', toggleRulers);
+            
+            // Add guide button
+            addGuideBtn.addEventListener('click', function() {
+                addGuide(true); // Add horizontal guide by default
+            });
+            
+            // Crop tool button
+            cropToolBtn.addEventListener('click', function() {
+                if (!originalImage) {
+                    showStatus('Please upload a photo first', 'error');
+                    return;
+                }
+                
+                // Show crop controls
+                cropControls.style.display = 'block';
+                cropperImage.src = photoCanvas.toDataURL();
+                
+                // Initialize cropper
+                if (cropper) {
+                    cropper.destroy();
+                }
+                
+                cropper = new Cropper(cropperImage, {
+                    aspectRatio: parseFloat(photoWidthInput.value) / parseFloat(photoHeightInput.value),
+                    viewMode: 1,
+                    autoCropArea: 0.8,
+                    responsive: true,
+                    guides: true,
+                    center: true,
+                    highlight: true,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false
+                });
+            });
+            
+            // Apply crop button
+            cropBtn.addEventListener('click', function() {
+                if (!cropper) return;
+                
+                // Get cropped canvas
+                const croppedCanvas = cropper.getCroppedCanvas();
+                
+                // Update main canvas
+                photoCanvas.width = croppedCanvas.width;
+                photoCanvas.height = croppedCanvas.height;
+                ctx.drawImage(croppedCanvas, 0, 0);
+                
+                // Save state
+                saveState();
+                
+                // Hide crop controls
+                cropControls.style.display = 'none';
+                
+                showStatus('Image cropped successfully!', 'success');
+            });
+            
+            // Cancel crop button
+            cancelCropBtn.addEventListener('click', function() {
+                cropControls.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+            });
             
             // Update copies count display
             copiesCountInput.addEventListener('input', function() {
@@ -789,8 +1204,13 @@
                     const containerTop = containerRect.top;
                     
                     // Calculate position in mm
-                    const newLeft = (e.clientX - containerLeft - offsetX) / (containerRect.width / 210);
-                    const newTop = (e.clientY - containerTop - offsetY) / (containerRect.height / 297);
+                    let newLeft = (e.clientX - containerLeft - offsetX) / (containerRect.width / 210);
+                    let newTop = (e.clientY - containerTop - offsetY) / (containerRect.height / 297);
+                    
+                    // Check for alignment with other photos
+                    const alignedPos = checkAlignment(newLeft, newTop, width, height, id);
+                    newLeft = alignedPos.x;
+                    newTop = alignedPos.y;
                     
                     // Constrain to container
                     const constrainedLeft = Math.max(0, Math.min(210 - width, newLeft));
@@ -810,6 +1230,8 @@
                 document.addEventListener('mouseup', () => {
                     isDragging = false;
                     photoDiv.style.zIndex = '1';
+                    horizontalGuide.style.display = 'none';
+                    verticalGuide.style.display = 'none';
                 });
                 
                 return photoDiv;
