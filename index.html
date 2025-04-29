@@ -3,154 +3,388 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="author" content="Tech254 Sizer">
-    <title>Metasploit Tech254 Passport Photo Sizer Tool</title>
+    <title>Tech254 Passport Photo Sizer Tool</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.12/dist/cropper.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #27ae60;
-            --danger-color: #e74c3c;
-            --purple-color: #9b59b6;
-            --orange-color: #f39c12;
-            --dark-color: #2c3e50;
+            --primary-color: #4361ee;
+            --primary-light: #e0e7ff;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --danger-color: #f72585;
+            --success-color: #4cc9f0;
+            --warning-color: #f8961e;
+            --dark-color: #2b2d42;
+            --light-color: #f8f9fa;
+            --gray-color: #adb5bd;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
         }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7ff;
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            line-height: 1.6;
-            background-color: #f5f7fa;
         }
-        h1 {
-            color: #2c3e50;
+        
+        header {
             text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
             margin-bottom: 5px;
         }
+        
         .brand {
-            text-align: center;
-            color: var(--primary-color);
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .container {
+            font-size: 1rem;
+            font-weight: 500;
+            opacity: 0.9;
             display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .upload-section, .preview-section {
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .controls {
-            margin: 15px 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+        
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        @media (max-width: 900px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 20px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .upload-area {
+            border: 2px dashed var(--gray-color);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            background-color: var(--light-color);
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+        
+        .upload-area i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .upload-area p {
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+        
+        .upload-area.active {
+            border-color: var(--success-color);
+            background-color: rgba(76, 201, 240, 0.1);
+        }
+        
+        #photoUpload {
+            display: none;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-right: 15px;
         }
-        button {
+        
+        .control-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: var(--dark-color);
+        }
+        
+        .control-group input, 
+        .control-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--gray-color);
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            transition: var(--transition);
+        }
+        
+        .control-group input:focus, 
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
+        input[type="color"] {
+            height: 40px;
+            padding: 3px;
+            cursor: pointer;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 8px;
+            background: var(--gray-color);
+            border-radius: 5px;
+            margin-top: 8px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-primary {
             background-color: var(--primary-color);
             color: white;
-            border: none;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-secondary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #3a7bc8;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #3ab7d9;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #e5177e;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e68a19;
+        }
+        
+        .btn-dark {
+            background-color: var(--dark-color);
+            color: white;
+        }
+        
+        .btn-dark:hover {
+            background-color: #1a1b2e;
+        }
+        
+        .btn-light {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+        }
+        
+        .btn-light:hover {
+            background-color: #e9ecef;
+        }
+        
+        .btn-sm {
             padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s;
+            font-size: 0.85rem;
         }
-        button:hover {
-            opacity: 0.9;
-        }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .download-options {
+        
+        .btn-group {
             display: flex;
-            justify-content: center;
             gap: 10px;
             flex-wrap: wrap;
         }
-        .download-btn {
-            background-color: var(--secondary-color);
-            padding: 10px 20px;
+        
+        .btn-group-center {
+            justify-content: center;
         }
-        .pdf-btn {
-            background-color: var(--danger-color);
-        }
-        .png-btn {
-            background-color: var(--primary-color);
-        }
-        .docx-btn {
-            background-color: var(--dark-color);
-        }
-        .print-btn {
-            background-color: var(--purple-color);
-        }
-        .bg-remove-btn {
-            background-color: var(--orange-color);
-        }
-        .undo-btn {
-            background-color: #7f8c8d;
-        }
-        .redo-btn {
-            background-color: #95a5a6;
-        }
+        
         canvas {
             max-width: 100%;
-            border: 1px solid #ddd;
-            margin-top: 10px;
-            border-radius: 4px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--gray-color);
+            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
+        
+        .preview-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+        
         .a4-template {
             width: 210mm;
             height: 297mm;
             background-color: white;
             margin: 0 auto;
-            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             position: relative;
             overflow: hidden;
             page-break-after: always;
         }
+        
         .photo-container {
             position: relative;
             width: 100%;
             height: 100%;
         }
+        
         .draggable-photo {
             position: absolute;
             cursor: move;
             user-select: none;
             box-sizing: border-box;
+            transition: var(--transition);
         }
+        
         .draggable-photo img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 4px;
         }
+        
         .photo-controls {
             position: absolute;
-            top: -25px;
+            top: -30px;
             left: 0;
             display: flex;
             gap: 5px;
+            opacity: 0;
+            transition: var(--transition);
         }
+        
+        .draggable-photo:hover .photo-controls {
+            opacity: 1;
+        }
+        
         .photo-control-btn {
-            width: 20px;
-            height: 20px;
+            width: 25px;
+            height: 25px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -159,7 +393,26 @@
             cursor: pointer;
             background-color: var(--primary-color);
             color: white;
+            transition: var(--transition);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
+        
+        .photo-control-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .photo-control-btn.delete {
+            background-color: var(--danger-color);
+        }
+        
+        .photo-control-btn.duplicate {
+            background-color: var(--success-color);
+        }
+        
+        .photo-control-btn.rotate {
+            background-color: var(--warning-color);
+        }
+        
         @media print {
             body * {
                 visibility: hidden;
@@ -184,273 +437,591 @@
                 display: none;
             }
         }
+        
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 15px 0 10px;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title i {
+            font-size: 1rem;
+            color: var(--primary-color);
+        }
+        
         .border-controls {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        input[type="range"] {
-            width: 100px;
-        }
-        .bg-removal-tool {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
             margin-top: 15px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
         }
-        .bg-removal-controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
+        
+        .bg-removal-tool {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--light-color);
+            border-radius: var(--border-radius);
         }
+        
         .history-controls {
-            margin-top: 10px;
+            margin-top: 15px;
             display: flex;
             gap: 10px;
         }
+        
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            border-top-color: #fff;
+            border-top-color: white;
             animation: spin 1s ease-in-out infinite;
         }
+        
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
         .status-message {
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 4px;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .layout-options {
             margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-message i {
+            font-size: 1.2rem;
+        }
+        
+        .success {
+            background-color: rgba(76, 201, 240, 0.1);
+            color: #155724;
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .error {
+            background-color: rgba(247, 37, 133, 0.1);
+            color: #721c24;
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .layout-options {
+            margin-top: 20px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
-        .layout-btn {
-            background-color: #95a5a6;
-        }
-        .layout-btn.active {
-            background-color: var(--secondary-color);
-        }
+        
         /* Cropper styles */
         .cropper-container {
             max-width: 100%;
-            margin: 10px 0;
+            margin: 15px 0;
+            border-radius: var(--border-radius);
+            overflow: hidden;
         }
+        
         .cropper-modal {
             background: transparent;
         }
+        
         .cropper-view-box {
             outline: 2px solid var(--primary-color);
-            outline-color: rgba(52, 152, 219, 0.75);
+            outline-color: rgba(67, 97, 238, 0.75);
         }
+        
         .cropper-dashed {
             border-color: var(--primary-color);
         }
+        
         .cropper-point {
             background-color: var(--primary-color);
         }
+        
         .cropper-line {
             background-color: var(--primary-color);
         }
+        
         /* Ruler styles */
         .ruler {
             position: absolute;
-            background-color: rgba(255, 255, 255, 0.7);
+            background-color: rgba(255, 255, 255, 0.9);
             z-index: 100;
             pointer-events: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+        
         .horizontal-ruler {
             top: 0;
             left: 0;
             width: 100%;
-            height: 20px;
-            border-bottom: 1px solid #ccc;
+            height: 25px;
+            border-bottom: 1px solid var(--gray-color);
         }
+        
         .vertical-ruler {
             top: 0;
             left: 0;
-            width: 20px;
+            width: 25px;
             height: 100%;
-            border-right: 1px solid #ccc;
+            border-right: 1px solid var(--gray-color);
         }
+        
         .ruler-marker {
             position: absolute;
-            background-color: #ccc;
+            background-color: var(--gray-color);
         }
+        
         .horizontal-marker {
             width: 1px;
-            height: 5px;
+            height: 7px;
         }
+        
         .vertical-marker {
-            width: 5px;
+            width: 7px;
             height: 1px;
         }
+        
         .ruler-label {
             position: absolute;
             font-size: 10px;
-            color: #666;
+            color: var(--dark-color);
+            font-weight: 500;
         }
+        
         /* Crop controls */
         .crop-controls {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--light-color);
+            border-radius: var(--border-radius);
         }
+        
         /* Alignment guides */
         .alignment-guide {
             position: absolute;
-            background-color: rgba(52, 152, 219, 0.5);
+            background-color: rgba(67, 97, 238, 0.5);
             z-index: 90;
             pointer-events: none;
             display: none;
         }
+        
         .horizontal-guide {
             width: 100%;
             height: 1px;
         }
+        
         .vertical-guide {
             width: 1px;
             height: 100%;
         }
+        
+        /* Tooltips */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: var(--dark-color);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            font-weight: normal;
+        }
+        
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--dark-color) transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Progress bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background-color: var(--light-color);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+        
+        /* Animation for file upload */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .upload-area.uploading {
+            animation: pulse 1.5s infinite;
+        }
+        
+        /* Floating action button */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 100;
+            transition: var(--transition);
+        }
+        
+        .fab:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px) scale(1.1);
+        }
+        
+        /* Dark mode toggle */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray-color);
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+        
+        /* Dark mode styles */
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .card {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .card h2 {
+            color: var(--accent-color);
+        }
+        
+        body.dark-mode .upload-area {
+            background-color: #2d2d2d;
+            border-color: #444;
+        }
+        
+        body.dark-mode .control-group input,
+        body.dark-mode .control-group select {
+            background-color: #2d2d2d;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        
+        body.dark-mode .border-controls,
+        body.dark-mode .bg-removal-tool {
+            background-color: #2d2d2d;
+        }
+        
+        body.dark-mode .a4-template {
+            background-color: #1e1e1e;
+        }
+        
+        body.dark-mode .ruler {
+            background-color: rgba(30, 30, 30, 0.9);
+        }
+        
+        body.dark-mode .ruler-label {
+            color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
-    <h1>Passport Photo Sizer Tool</h1>
-    <div class="brand">by Meta Tech254 Sizer</div>
-    
+    <div class="dark-mode-toggle">
+        <label class="toggle-switch">
+            <input type="checkbox" id="darkModeToggle">
+            <span class="slider"></span>
+        </label>
+    </div>
+
     <div class="container">
-        <div class="upload-section">
-            <h2>1. Upload Your Photo</h2>
-            <input type="file" id="photoUpload" accept="image/*">
-            
-            <div class="crop-controls" style="display: none;">
-                <h3>Crop Image</h3>
-                <div id="cropper-container" style="max-width: 100%; height: 300px;">
-                    <img id="cropper-image" style="max-width: 100%;">
-                </div>
-                <div class="controls" style="margin-top: 10px;">
-                    <button id="crop-btn">Apply Crop</button>
-                    <button id="cancel-crop-btn">Cancel</button>
-                </div>
+        <header>
+            <h1>Passport Photo Sizer Tool</h1>
+            <div class="brand">
+                <i class="fas fa-camera"></i>
+                <span>By Meta Tech254 Sizer</span>
             </div>
-            
-            <div class="controls">
-                <div class="control-group">
-                    <label for="photoWidth">Width (mm):</label>
-                    <input type="number" id="photoWidth" value="35" min="10" max="100">
-                </div>
-                
-                <div class="control-group">
-                    <label for="photoHeight">Height (mm):</label>
-                    <input type="number" id="photoHeight" value="45" min="10" max="100">
-                </div>
-                
-                <div class="control-group">
-                    <label for="bgColor">Background:</label>
-                    <input type="color" id="bgColor" value="#ffffff">
-                </div>
-                
-                <div class="control-group">
-                    <label for="copiesCount">Copies:</label>
-                    <input type="number" id="copiesCount" value="4" min="1" max="20">
-                </div>
-                
-                <button id="resizeBtn">Resize Photo</button>
-                <button id="crop-tool-btn">Crop Tool</button>
-            </div>
-            
-            <div class="border-controls">
-                <h3>Border Settings:</h3>
-                <div class="controls">
-                    <div class="control-group">
-                        <label for="borderSize">Size (mm):</label>
-                        <input type="range" id="borderSize" min="0" max="2" step="0.1" value="0.2">
-                        <span id="borderSizeValue">0.2mm</span>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label for="borderColor">Color:</label>
-                        <input type="color" id="borderColor" value="#cccccc">
-                    </div>
-                    
-                    <div class="control-group">
-                        <label for="borderType">Style:</label>
-                        <select id="borderType">
-                            <option value="solid">Solid</option>
-                            <option value="dashed" selected>Dashed</option>
-                            <option value="dotted">Dotted</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-removal-tool">
-                <h3>meta Tech Background Removal</h3>
-                <p>Automatic Background removal NB This feauture is still under development,Thank you for using meta tech. All copyrights reserved by ND metasploit@2025 </p>
-                <div class="bg-removal-controls">
-                    <button id="removeBgBtn" class="bg-remove-btn">
-                        <span id="removeBgText">Remove Background</span>
-                        <span id="removeBgSpinner" class="loading" style="display:none;"></span>
-                    </button>
-                    <button id="resetBgBtn">Reset Image</button>
-                </div>
-                <div class="history-controls">
-                    <button id="undoBtn" class="undo-btn" disabled>Undo</button>
-                    <button id="redoBtn" class="redo-btn" disabled>Redo</button>
-                </div>
-                <div id="statusMessage" class="status-message" style="display:none;"></div>
-            </div>
-            
-            <canvas id="photoCanvas"></canvas>
-        </div>
+        </header>
         
-        <div class="preview-section">
-            <h2>2. A4 Print Preview (<span id="copiesCountDisplay">4</span> copies)</h2>
-            
-            <div class="layout-options no-print">
-                <button id="autoLayoutBtn" class="layout-btn active">Auto Layout</button>
-                <button id="manualLayoutBtn" class="layout-btn">Manual Layout</button>
-                <button id="gridLayoutBtn" class="layout-btn">Grid Layout</button>
-                <button id="toggleRulerBtn" class="layout-btn">Toggle Ruler</button>
-                <button id="addGuideBtn" class="layout-btn">Add Guide</button>
-            </div>
-            
-            <div class="a4-template" id="a4Template">
-                <div id="horizontalRuler" class="ruler horizontal-ruler" style="display: none;"></div>
-                <div id="verticalRuler" class="ruler vertical-ruler" style="display: none;"></div>
-                <div class="photo-container" id="photoContainer">
-                    <!-- Alignment guides -->
-                    <div id="horizontalGuide" class="alignment-guide horizontal-guide"></div>
-                    <div id="verticalGuide" class="alignment-guide vertical-guide"></div>
-                    <!-- Photos will be inserted here as draggable elements -->
+        <div class="app-container">
+            <div class="upload-section">
+                <div class="card">
+                    <h2><i class="fas fa-upload"></i> Upload Your Photo</h2>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & drop your photo here or click to browse</p>
+                        <button class="btn btn-primary" id="uploadButton">
+                            <i class="fas fa-folder-open"></i> Select File
+                        </button>
+                        <input type="file" id="photoUpload" accept="image/*">
+                    </div>
+                    
+                    <div class="crop-controls" style="display: none;">
+                        <h3 class="section-title"><i class="fas fa-crop-alt"></i> Crop Image</h3>
+                        <div id="cropper-container">
+                            <img id="cropper-image" style="max-width: 100%;">
+                        </div>
+                        <div class="btn-group" style="margin-top: 15px;">
+                            <button id="crop-btn" class="btn btn-success">
+                                <i class="fas fa-check"></i> Apply Crop
+                            </button>
+                            <button id="cancel-crop-btn" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title"><i class="fas fa-ruler-combined"></i> Photo Dimensions</h3>
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="photoWidth">Width (mm):</label>
+                            <input type="number" id="photoWidth" value="35" min="10" max="100">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="photoHeight">Height (mm):</label>
+                            <input type="number" id="photoHeight" value="45" min="10" max="100">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="bgColor">Background:</label>
+                            <input type="color" id="bgColor" value="#ffffff">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="copiesCount">Copies:</label>
+                            <input type="number" id="copiesCount" value="4" min="1" max="20">
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button id="resizeBtn" class="btn btn-primary">
+                            <i class="fas fa-expand"></i> Resize Photo
+                        </button>
+                        <button id="crop-tool-btn" class="btn btn-secondary">
+                            <i class="fas fa-crop-alt"></i> Crop Tool
+                        </button>
+                    </div>
+                    
+                    <canvas id="photoCanvas"></canvas>
+                    
+                    <div class="border-controls">
+                        <h3 class="section-title"><i class="fas fa-border-style"></i> Border Settings</h3>
+                        <div class="controls">
+                            <div class="control-group">
+                                <label for="borderSize">Size (mm): <span id="borderSizeValue">0.2</span></label>
+                                <input type="range" id="borderSize" min="0" max="2" step="0.1" value="0.2">
+                            </div>
+                            
+                            <div class="control-group">
+                                <label for="borderColor">Color:</label>
+                                <input type="color" id="borderColor" value="#cccccc">
+                            </div>
+                            
+                            <div class="control-group">
+                                <label for="borderType">Style:</label>
+                                <select id="borderType" class="btn btn-light">
+                                    <option value="solid">Solid</option>
+                                    <option value="dashed" selected>Dashed</option>
+                                    <option value="dotted">Dotted</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-removal-tool">
+                        <h3 class="section-title"><i class="fas fa-magic"></i> Metasploit Tech 254 Background Removal</h3>
+                        <p>Automatically remove background with Metasploit Tech 254</p>
+                        <div class="bg-removal-controls">
+                            <button id="removeBgBtn" class="btn btn-warning">
+                                <span id="removeBgText"><i class="fas fa-robot"></i> Remove Background</span>
+                                <span id="removeBgSpinner" class="loading" style="display:none;"></span>
+                            </button>
+                            <button id="resetBgBtn" class="btn btn-light">
+                                <i class="fas fa-undo"></i> Reset Image
+                            </button>
+                        </div>
+                        <div class="progress-container" style="display: none;">
+                            <div class="progress-bar" id="progressBar"></div>
+                        </div>
+                        <div class="history-controls">
+                            <button id="undoBtn" class="btn btn-light" disabled>
+                                <i class="fas fa-undo"></i> Undo
+                            </button>
+                            <button id="redoBtn" class="btn btn-light" disabled>
+                                <i class="fas fa-redo"></i> Redo
+                            </button>
+                        </div>
+                        <div id="statusMessage" class="status-message" style="display:none;"></div>
+                    </div>
                 </div>
             </div>
             
-            <div class="download-options no-print">
-                <button id="downloadPdfBtn" class="download-btn pdf-btn">Download PDF</button>
-                <button id="downloadPngBtn" class="download-btn png-btn">Download PNG</button>
-                <button id="downloadJpgBtn" class="download-btn">Download JPG</button>
-                <button id="downloadDocxBtn" class="download-btn docx-btn">Download DOCX</button>
-                <button id="printBtn" class="print-btn">Print</button>
+            <div class="preview-section">
+                <div class="card">
+                    <h2><i class="fas fa-print"></i> A4 Print Preview (<span id="copiesCountDisplay">4</span> copies)</h2>
+                    
+                    <div class="layout-options no-print">
+                        <button id="autoLayoutBtn" class="btn btn-success active">
+                            <i class="fas fa-magic"></i> Auto Layout
+                        </button>
+                        <button id="manualLayoutBtn" class="btn btn-secondary">
+                            <i class="fas fa-hand-paper"></i> Manual
+                        </button>
+                        <button id="gridLayoutBtn" class="btn btn-secondary">
+                            <i class="fas fa-th"></i> Grid
+                        </button>
+                        <button id="toggleRulerBtn" class="btn btn-light">
+                            <i class="fas fa-ruler"></i> Ruler
+                        </button>
+                        <button id="addGuideBtn" class="btn btn-light">
+                            <i class="fas fa-plus"></i> Guide
+                        </button>
+                    </div>
+                    
+                    <div class="preview-container">
+                        <div class="a4-template" id="a4Template">
+                            <div id="horizontalRuler" class="ruler horizontal-ruler" style="display: none;"></div>
+                            <div id="verticalRuler" class="ruler vertical-ruler" style="display: none;"></div>
+                            <div class="photo-container" id="photoContainer">
+                                <!-- Alignment guides -->
+                                <div id="horizontalGuide" class="alignment-guide horizontal-guide"></div>
+                                <div id="verticalGuide" class="alignment-guide vertical-guide"></div>
+                                <!-- Photos will be inserted here as draggable elements -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group btn-group-center no-print" style="margin-top: 20px;">
+                        <button id="downloadPdfBtn" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button id="downloadPngBtn" class="btn btn-primary">
+                            <i class="fas fa-file-image"></i> PNG
+                        </button>
+                        <button id="downloadJpgBtn" class="btn btn-primary">
+                            <i class="fas fa-file-image"></i> JPG
+                        </button>
+                        <button id="downloadDocxBtn" class="btn btn-dark">
+                            <i class="fas fa-file-word"></i> DOCX
+                        </button>
+                        <button id="printBtn" class="btn btn-warning">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+
+    <div class="fab no-print" id="helpFab">
+        <i class="fas fa-question"></i>
     </div>
 
     <script>
@@ -460,6 +1031,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             // DOM elements
             const photoUpload = document.getElementById('photoUpload');
+            const uploadArea = document.getElementById('uploadArea');
+            const uploadButton = document.getElementById('uploadButton');
             const photoCanvas = document.getElementById('photoCanvas');
             const ctx = photoCanvas.getContext('2d');
             const photoWidthInput = document.getElementById('photoWidth');
@@ -495,6 +1068,10 @@
             const addGuideBtn = document.getElementById('addGuideBtn');
             const horizontalGuide = document.getElementById('horizontalGuide');
             const verticalGuide = document.getElementById('verticalGuide');
+            const progressBar = document.getElementById('progressBar');
+            const progressContainer = document.querySelector('.progress-container');
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const helpFab = document.getElementById('helpFab');
             
             // Border controls
             const borderSizeInput = document.getElementById('borderSize');
@@ -516,6 +1093,163 @@
             let isRulerVisible = false;
             let snapThreshold = 5; // pixels threshold for snapping
             let isSnapping = false;
+            let historyStack = [];
+            let currentHistoryIndex = -1;
+            const MAX_HISTORY = 20;
+            
+            // Initialize the app
+            function init() {
+                // Initialize event listeners
+                setupEventListeners();
+                
+                // Initialize rulers
+                initRulers();
+                
+                // Initialize with auto layout
+                setLayoutMode('auto');
+                
+                // Check for dark mode preference
+                if (localStorage.getItem('darkMode') === 'enabled') {
+                    document.body.classList.add('dark-mode');
+                    darkModeToggle.checked = true;
+                }
+            }
+            
+            // Set up all event listeners
+            function setupEventListeners() {
+                // File upload
+                uploadButton.addEventListener('click', () => photoUpload.click());
+                uploadArea.addEventListener('click', () => photoUpload.click());
+                photoUpload.addEventListener('change', handleFileUpload);
+                
+                // Drag and drop
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('active');
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('active');
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('active');
+                    if (e.dataTransfer.files.length) {
+                        photoUpload.files = e.dataTransfer.files;
+                        handleFileUpload();
+                    }
+                });
+                
+                // Photo controls
+                copiesCountInput.addEventListener('input', updateCopiesCountDisplay);
+                borderSizeInput.addEventListener('input', updateBorderSize);
+                borderColorInput.addEventListener('input', updateBorderColor);
+                borderTypeInput.addEventListener('change', updateBorderType);
+                resizeBtn.addEventListener('click', resizePhoto);
+                cropToolBtn.addEventListener('click', toggleCropTool);
+                cropBtn.addEventListener('click', applyCrop);
+                cancelCropBtn.addEventListener('click', cancelCrop);
+                
+                // Background removal
+                removeBgBtn.addEventListener('click', removeBackground);
+                resetBgBtn.addEventListener('click', resetBackground);
+                undoBtn.addEventListener('click', undoAction);
+                redoBtn.addEventListener('click', redoAction);
+                
+                // Layout controls
+                autoLayoutBtn.addEventListener('click', () => setLayoutMode('auto'));
+                manualLayoutBtn.addEventListener('click', () => setLayoutMode('manual'));
+                gridLayoutBtn.addEventListener('click', () => setLayoutMode('grid'));
+                toggleRulerBtn.addEventListener('click', toggleRulers);
+                addGuideBtn.addEventListener('click', () => addGuide(true));
+                
+                // Download/print controls
+                downloadPdfBtn.addEventListener('click', downloadPDF);
+                downloadPngBtn.addEventListener('click', downloadPNG);
+                downloadJpgBtn.addEventListener('click', downloadJPG);
+                downloadDocxBtn.addEventListener('click', downloadDOCX);
+                printBtn.addEventListener('click', printDocument);
+                
+                // Dark mode toggle
+                darkModeToggle.addEventListener('change', toggleDarkMode);
+                
+                // Help button
+                helpFab.addEventListener('click', showHelp);
+            }
+            
+            // Handle file upload
+            function handleFileUpload() {
+                if (photoUpload.files && photoUpload.files[0]) {
+                    uploadArea.classList.add('uploading');
+                    
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        originalImage = new Image();
+                        originalImage.onload = function() {
+                            photoCanvas.width = originalImage.width;
+                            photoCanvas.height = originalImage.height;
+                            ctx.drawImage(originalImage, 0, 0);
+                            
+                            // Save initial state to history
+                            saveState();
+                            
+                            uploadArea.classList.remove('uploading');
+                            uploadArea.innerHTML = `
+                                <i class="fas fa-check-circle" style="color: var(--success-color); font-size: 2.5rem;"></i>
+                                <p>Photo uploaded successfully!</p>
+                            `;
+                            
+                            showStatus('<i class="fas fa-check-circle"></i> Photo uploaded successfully!', 'success');
+                        };
+                        originalImage.onerror = function() {
+                            uploadArea.classList.remove('uploading');
+                            uploadArea.innerHTML = `
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Drag & drop your photo here or click to browse</p>
+                                <button class="btn btn-primary" id="uploadButton">
+                                    <i class="fas fa-folder-open"></i> Select File
+                                </button>
+                            `;
+                            showStatus('<i class="fas fa-exclamation-circle"></i> Failed to load image', 'error');
+                        };
+                        originalImage.src = event.target.result;
+                    };
+                    
+                    reader.onerror = function() {
+                        uploadArea.classList.remove('uploading');
+                        showStatus('<i class="fas fa-exclamation-circle"></i> Error reading file', 'error');
+                    };
+                    
+                    reader.readAsDataURL(photoUpload.files[0]);
+                }
+            }
+            
+            // Update copies count display
+            function updateCopiesCountDisplay() {
+                copiesCountDisplay.textContent = copiesCountInput.value;
+                if (resizedImageUrl) updateA4Template();
+            }
+            
+            // Update border size
+            function updateBorderSize() {
+                currentBorderSize = parseFloat(borderSizeInput.value);
+                borderSizeValue.textContent = currentBorderSize.toFixed(1);
+                if (resizedImageUrl) updatePhotoBorders();
+            }
+            
+            // Update border color
+            function updateBorderColor() {
+                currentBorderColor = borderColorInput.value;
+                if (resizedImageUrl) updatePhotoBorders();
+            }
+            
+            // Update border type
+            function updateBorderType() {
+                currentBorderType = borderTypeInput.value;
+                if (resizedImageUrl) updatePhotoBorders();
+            }
             
             // Initialize rulers
             function initRulers() {
@@ -527,15 +1261,15 @@
                     marker.style.bottom = '0';
                     
                     if (i % 50 === 0) {
-                        marker.style.height = '10px';
+                        marker.style.height = '12px';
                         const label = document.createElement('div');
                         label.className = 'ruler-label';
                         label.textContent = i;
                         label.style.left = `${i-5}mm`;
-                        label.style.bottom = '-15px';
+                        label.style.bottom = '-18px';
                         horizontalRuler.appendChild(label);
                     } else if (i % 10 === 0) {
-                        marker.style.height = '7px';
+                        marker.style.height = '8px';
                     }
                     
                     horizontalRuler.appendChild(marker);
@@ -549,15 +1283,15 @@
                     marker.style.right = '0';
                     
                     if (i % 50 === 0) {
-                        marker.style.width = '10px';
+                        marker.style.width = '12px';
                         const label = document.createElement('div');
                         label.className = 'ruler-label';
                         label.textContent = i;
                         label.style.top = `${i-5}mm`;
-                        label.style.right = '-15px';
+                        label.style.right = '-18px';
                         verticalRuler.appendChild(label);
                     } else if (i % 10 === 0) {
-                        marker.style.width = '7px';
+                        marker.style.width = '8px';
                     }
                     
                     verticalRuler.appendChild(marker);
@@ -570,11 +1304,11 @@
                 if (isRulerVisible) {
                     horizontalRuler.style.display = 'block';
                     verticalRuler.style.display = 'block';
-                    toggleRulerBtn.textContent = 'Hide Ruler';
+                    toggleRulerBtn.innerHTML = '<i class="fas fa-ruler"></i> Hide Ruler';
                 } else {
                     horizontalRuler.style.display = 'none';
                     verticalRuler.style.display = 'none';
-                    toggleRulerBtn.textContent = 'Show Ruler';
+                    toggleRulerBtn.innerHTML = '<i class="fas fa-ruler"></i> Show Ruler';
                 }
             }
             
@@ -747,21 +1481,10 @@
                 return { x, y };
             }
             
-            // Initialize rulers
-            initRulers();
-            
-            // Toggle ruler button
-            toggleRulerBtn.addEventListener('click', toggleRulers);
-            
-            // Add guide button
-            addGuideBtn.addEventListener('click', function() {
-                addGuide(true); // Add horizontal guide by default
-            });
-            
-            // Crop tool button
-            cropToolBtn.addEventListener('click', function() {
+            // Toggle crop tool
+            function toggleCropTool() {
                 if (!originalImage) {
-                    showStatus('Please upload a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please upload a photo first', 'error');
                     return;
                 }
                 
@@ -786,10 +1509,10 @@
                     cropBoxResizable: true,
                     toggleDragModeOnDblclick: false
                 });
-            });
+            }
             
-            // Apply crop button
-            cropBtn.addEventListener('click', function() {
+            // Apply crop
+            function applyCrop() {
                 if (!cropper) return;
                 
                 // Get cropped canvas
@@ -806,94 +1529,17 @@
                 // Hide crop controls
                 cropControls.style.display = 'none';
                 
-                showStatus('Image cropped successfully!', 'success');
-            });
+                showStatus('<i class="fas fa-check-circle"></i> Image cropped successfully!', 'success');
+            }
             
-            // Cancel crop button
-            cancelCropBtn.addEventListener('click', function() {
+            // Cancel crop
+            function cancelCrop() {
                 cropControls.style.display = 'none';
                 if (cropper) {
                     cropper.destroy();
                     cropper = null;
                 }
-            });
-            
-            // Update copies count display
-            copiesCountInput.addEventListener('input', function() {
-                copiesCountDisplay.textContent = this.value;
-                if (resizedImageUrl) updateA4Template();
-            });
-            
-            // Update border size display
-            borderSizeInput.addEventListener('input', function() {
-                currentBorderSize = parseFloat(this.value);
-                borderSizeValue.textContent = currentBorderSize.toFixed(1) + 'mm';
-                if (resizedImageUrl) updatePhotoBorders();
-            });
-            
-            // Update border color
-            borderColorInput.addEventListener('input', function() {
-                currentBorderColor = this.value;
-                if (resizedImageUrl) updatePhotoBorders();
-            });
-            
-            // Update border type
-            borderTypeInput.addEventListener('change', function() {
-                currentBorderType = this.value;
-                if (resizedImageUrl) updatePhotoBorders();
-            });
-            
-            // Layout mode buttons
-            autoLayoutBtn.addEventListener('click', function() {
-                setLayoutMode('auto');
-            });
-            
-            manualLayoutBtn.addEventListener('click', function() {
-                setLayoutMode('manual');
-            });
-            
-            gridLayoutBtn.addEventListener('click', function() {
-                setLayoutMode('grid');
-            });
-            
-            function setLayoutMode(mode) {
-                currentLayoutMode = mode;
-                autoLayoutBtn.classList.remove('active');
-                manualLayoutBtn.classList.remove('active');
-                gridLayoutBtn.classList.remove('active');
-                
-                if (mode === 'auto') {
-                    autoLayoutBtn.classList.add('active');
-                    updateA4Template();
-                } else if (mode === 'manual') {
-                    manualLayoutBtn.classList.add('active');
-                    enableManualLayout();
-                } else if (mode === 'grid') {
-                    gridLayoutBtn.classList.add('active');
-                    updateGridLayout();
-                }
             }
-            
-            // Handle photo upload
-            photoUpload.addEventListener('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(event) {
-                        originalImage = new Image();
-                        originalImage.onload = function() {
-                            photoCanvas.width = originalImage.width;
-                            photoCanvas.height = originalImage.height;
-                            ctx.drawImage(originalImage, 0, 0);
-                            // Save initial state to history
-                            saveState();
-                        };
-                        originalImage.src = event.target.result;
-                    };
-                    
-                    reader.readAsDataURL(e.target.files[0]);
-                }
-            });
             
             // Save current canvas state to history
             function saveState() {
@@ -924,20 +1570,20 @@
             }
             
             // Undo last action
-            undoBtn.addEventListener('click', function() {
+            function undoAction() {
                 if (currentHistoryIndex > 0) {
                     currentHistoryIndex--;
                     restoreState();
                 }
-            });
+            }
             
             // Redo last undone action
-            redoBtn.addEventListener('click', function() {
+            function redoAction() {
                 if (currentHistoryIndex < historyStack.length - 1) {
                     currentHistoryIndex++;
                     restoreState();
                 }
-            });
+            }
             
             // Restore state from history
             function restoreState() {
@@ -948,24 +1594,27 @@
             }
             
             // Remove background using AI (simulated API call)
-            removeBgBtn.addEventListener('click', async function() {
+            async function removeBackground() {
                 if (!originalImage) {
-                    showStatus('Please upload a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please upload a photo first', 'error');
                     return;
                 }
                 
                 try {
                     // Show loading state
-                    removeBgText.textContent = 'Processing...';
+                    removeBgText.innerHTML = '<i class="fas fa-robot"></i> Processing...';
                     removeBgSpinner.style.display = 'inline-block';
                     removeBgBtn.disabled = true;
+                    progressContainer.style.display = 'block';
                     statusMessage.style.display = 'none';
                     
                     // Save state before making changes
                     saveState();
                     
+                    // Simulate progress
+                    simulateProgress();
+                    
                     // Simulate AI background removal (in a real app, you would call an API here)
-                    // For demonstration, we'll use a timeout to simulate API delay
                     await new Promise(resolve => setTimeout(resolve, 1500));
                     
                     // Create a temporary canvas for the "AI" processing
@@ -978,17 +1627,9 @@
                     tempCtx.drawImage(photoCanvas, 0, 0);
                     
                     // Simulate AI processing by making a "best guess" at the background
-                    // In a real implementation, this would be replaced with actual API call to:
-                    // 1. Remove.bg API
-                    // 2. Cloudinary
-                    // 3. Or other AI background removal service
-                    
-                    // Get image data
                     const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
                     const data = imageData.data;
                     
-                    // Sample "AI" algorithm - this is just a simple simulation
-                    // Real implementation would use proper AI segmentation
                     const centerX = Math.floor(tempCanvas.width / 2);
                     const centerY = Math.floor(tempCanvas.height / 2);
                     const edgeThreshold = 0.15; // 15% from edges is considered background
@@ -1026,23 +1667,47 @@
                     ctx.drawImage(tempCanvas, 0, 0);
                     currentImageData = ctx.getImageData(0, 0, photoCanvas.width, photoCanvas.height);
                     
-                    showStatus('Background removed successfully!', 'success');
+                    showStatus('<i class="fas fa-check-circle"></i> Background removed successfully!', 'success');
                 } catch (error) {
                     console.error('Background removal failed:', error);
-                    showStatus('Background removal failed. Please try again.', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Background removal failed. Please try again.', 'error');
                 } finally {
                     // Reset button state
-                    removeBgText.textContent = 'Remove Background';
+                    removeBgText.innerHTML = '<i class="fas fa-robot"></i> Remove Background';
                     removeBgSpinner.style.display = 'none';
                     removeBgBtn.disabled = false;
+                    progressContainer.style.display = 'none';
                 }
-            });
+            }
+            
+            // Simulate progress bar animation
+            function simulateProgress() {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 5;
+                    progressBar.style.width = `${Math.min(progress, 100)}%`;
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                    }
+                }, 100);
+            }
+            
+            // Reset image to original
+            function resetBackground() {
+                if (historyStack.length > 0) {
+                    saveState(); // Save current state before resetting
+                    currentHistoryIndex = 0;
+                    restoreState();
+                    showStatus('<i class="fas fa-check-circle"></i> Image reset to original', 'success');
+                }
+            }
             
             // Show status message
             function showStatus(message, type) {
-                statusMessage.textContent = message;
+                statusMessage.innerHTML = message;
                 statusMessage.className = `status-message ${type}`;
-                statusMessage.style.display = 'block';
+                statusMessage.style.display = 'flex';
                 
                 // Hide after 5 seconds
                 setTimeout(() => {
@@ -1050,20 +1715,10 @@
                 }, 5000);
             }
             
-            // Reset image to original
-            resetBgBtn.addEventListener('click', function() {
-                if (historyStack.length > 0) {
-                    saveState(); // Save current state before resetting
-                    currentHistoryIndex = 0;
-                    restoreState();
-                    showStatus('Image reset to original', 'success');
-                }
-            });
-            
             // Resize photo to passport size
-            resizeBtn.addEventListener('click', function() {
+            function resizePhoto() {
                 if (!originalImage) {
-                    showStatus('Please upload a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please upload a photo first', 'error');
                     return;
                 }
                 
@@ -1120,8 +1775,8 @@
                 // Update the A4 template
                 updateA4Template();
                 
-                showStatus('Photo resized successfully!', 'success');
-            });
+                showStatus('<i class="fas fa-check-circle"></i> Photo resized successfully!', 'success');
+            }
             
             // Update photo borders
             function updatePhotoBorders() {
@@ -1152,7 +1807,7 @@
                 controlsDiv.className = 'photo-controls';
                 
                 const deleteBtn = document.createElement('div');
-                deleteBtn.className = 'photo-control-btn';
+                deleteBtn.className = 'photo-control-btn delete';
                 deleteBtn.innerHTML = '×';
                 deleteBtn.title = 'Delete';
                 deleteBtn.addEventListener('click', (e) => {
@@ -1162,7 +1817,7 @@
                 });
                 
                 const cloneBtn = document.createElement('div');
-                cloneBtn.className = 'photo-control-btn';
+                cloneBtn.className = 'photo-control-btn duplicate';
                 cloneBtn.innerHTML = '+';
                 cloneBtn.title = 'Duplicate';
                 cloneBtn.addEventListener('click', (e) => {
@@ -1178,8 +1833,21 @@
                     });
                 });
                 
+                const rotateBtn = document.createElement('div');
+                rotateBtn.className = 'photo-control-btn rotate';
+                rotateBtn.innerHTML = '↻';
+                rotateBtn.title = 'Rotate';
+                rotateBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const currentTransform = photoDiv.style.transform || '';
+                    photoDiv.style.transform = currentTransform.includes('rotate(90deg)') ? 
+                        currentTransform.replace('rotate(90deg)', '') : 
+                        currentTransform + ' rotate(90deg)';
+                });
+                
                 controlsDiv.appendChild(deleteBtn);
                 controlsDiv.appendChild(cloneBtn);
+                controlsDiv.appendChild(rotateBtn);
                 photoDiv.appendChild(controlsDiv);
                 
                 // Make draggable
@@ -1235,6 +1903,25 @@
                 });
                 
                 return photoDiv;
+            }
+            
+            // Set layout mode
+            function setLayoutMode(mode) {
+                currentLayoutMode = mode;
+                autoLayoutBtn.classList.remove('active');
+                manualLayoutBtn.classList.remove('active');
+                gridLayoutBtn.classList.remove('active');
+                
+                if (mode === 'auto') {
+                    autoLayoutBtn.classList.add('active');
+                    updateA4Template();
+                } else if (mode === 'manual') {
+                    manualLayoutBtn.classList.add('active');
+                    enableManualLayout();
+                } else if (mode === 'grid') {
+                    gridLayoutBtn.classList.add('active');
+                    updateGridLayout();
+                }
             }
             
             // Enable manual layout mode
@@ -1552,9 +2239,9 @@
             }
             
             // Download as PDF
-            downloadPdfBtn.addEventListener('click', async function() {
+            async function downloadPDF() {
                 if (!resizedImageUrl) {
-                    showStatus('Please resize a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please resize a photo first', 'error');
                     return;
                 }
                 
@@ -1573,17 +2260,17 @@
                     
                     // Download PDF
                     pdf.save('passport-photos-tech254.pdf');
-                    showStatus('PDF downloaded successfully!', 'success');
+                    showStatus('<i class="fas fa-check-circle"></i> PDF downloaded successfully!', 'success');
                 } catch (error) {
                     console.error('PDF generation failed:', error);
-                    showStatus('Failed to generate PDF', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Failed to generate PDF', 'error');
                 }
-            });
+            }
             
             // Download as PNG
-            downloadPngBtn.addEventListener('click', async function() {
+            async function downloadPNG() {
                 if (!resizedImageUrl) {
-                    showStatus('Please resize a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please resize a photo first', 'error');
                     return;
                 }
                 
@@ -1595,17 +2282,17 @@
                     link.download = 'passport-photos-tech254.png';
                     link.href = a4Canvas.toDataURL('image/png');
                     link.click();
-                    showStatus('PNG downloaded successfully!', 'success');
+                    showStatus('<i class="fas fa-check-circle"></i> PNG downloaded successfully!', 'success');
                 } catch (error) {
                     console.error('PNG generation failed:', error);
-                    showStatus('Failed to generate PNG', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Failed to generate PNG', 'error');
                 }
-            });
+            }
             
             // Download as JPG
-            downloadJpgBtn.addEventListener('click', async function() {
+            async function downloadJPG() {
                 if (!resizedImageUrl) {
-                    showStatus('Please resize a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please resize a photo first', 'error');
                     return;
                 }
                 
@@ -1617,17 +2304,17 @@
                     link.download = 'passport-photos-tech254.jpg';
                     link.href = a4Canvas.toDataURL('image/jpeg', 0.9);
                     link.click();
-                    showStatus('JPG downloaded successfully!', 'success');
+                    showStatus('<i class="fas fa-check-circle"></i> JPG downloaded successfully!', 'success');
                 } catch (error) {
                     console.error('JPG generation failed:', error);
-                    showStatus('Failed to generate JPG', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Failed to generate JPG', 'error');
                 }
-            });
+            }
             
             // Download as DOCX
-            downloadDocxBtn.addEventListener('click', async function() {
+            async function downloadDOCX() {
                 if (!resizedImageUrl) {
-                    showStatus('Please resize a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please resize a photo first', 'error');
                     return;
                 }
                 
@@ -1649,24 +2336,51 @@
                         URL.revokeObjectURL(link.href);
                     }, 100);
                     
-                    showStatus('DOCX downloaded successfully!', 'success');
+                    showStatus('<i class="fas fa-check-circle"></i> DOCX downloaded successfully!', 'success');
                 } catch (error) {
                     console.error('DOCX generation failed:', error);
-                    showStatus('Failed to generate DOCX', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Failed to generate DOCX', 'error');
                 }
-            });
+            }
             
             // Print A4 template
-            printBtn.addEventListener('click', function() {
+            function printDocument() {
                 if (!resizedImageUrl) {
-                    showStatus('Please resize a photo first', 'error');
+                    showStatus('<i class="fas fa-exclamation-circle"></i> Please resize a photo first', 'error');
                     return;
                 }
                 window.print();
-            });
+            }
             
-            // Initialize with auto layout
-            setLayoutMode('auto');
+            // Toggle dark mode
+            function toggleDarkMode() {
+                document.body.classList.toggle('dark-mode');
+                
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('darkMode', 'enabled');
+                } else {
+                    localStorage.setItem('darkMode', 'disabled');
+                }
+            }
+            
+            // Show help modal
+            function showHelp() {
+                alert("Passport Photo Sizer Tool Help:\n\n" +
+                    "1. Upload your photo by clicking the upload area or dragging a file\n" +
+                    "2. Set the desired dimensions for your passport photo\n" +
+                    "3. Use the Crop Tool if you need to adjust the composition\n" +
+                    "4. Click 'Resize Photo' to apply the changes\n" +
+                    "5. Choose a layout mode (Auto, Manual, or Grid)\n" +
+                    "6. Download or print your formatted passport photos\n\n" +
+                    "Additional features:\n" +
+                    "-Meta TECH Background Removal (simulated)\n" +
+                    "- Custom border settings\n" +
+                    "- Multiple export formats (PDF, PNG, JPG, DOCX)\n" +
+                    "- Dark mode toggle in the top right corner");
+            }
+            
+            // Initialize the application
+            init();
         });
     </script>
 </body>
